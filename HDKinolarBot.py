@@ -2345,7 +2345,7 @@ def delete_episode_execute(call):
         markup.add(
             types.InlineKeyboardButton(
                 "🔙 Ortga",
-                callback_data=f"manage_delete_season_{serial_code}_{new_season_id}"
+                callback_data=f"delete_season_select_{serial_code}_{new_season_id}"
             )
         )
         bot.send_message(
