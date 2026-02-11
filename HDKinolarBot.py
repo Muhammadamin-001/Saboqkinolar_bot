@@ -2451,10 +2451,12 @@ def movie_list(msg):
 
 # =================== SERIALLAR (User uchun) - ✅ TUZATILGAN ===================
 
+# =================== SERIALLAR (User uchun) - ✅ TUZATILGAN ===================
+
 @bot.message_handler(func=lambda msg: msg.text == "📥 Seriallar")
 def show_user_serials(msg):
     """✅ TUZATILGAN: Foydalanuvchi uchun seriallar ro'yxati"""
-    user_id = msg.from_user.id  # ✅ TUZATILGAN: msg.from_user.id emas, to'g'ri
+    user_id = msg.from_user.id
     
     if not check_sub(user_id):
         upload_mdb(msg)
@@ -2490,6 +2492,10 @@ def show_user_serials(msg):
 def user_view_serial_handler(call):
     """✅ TUZATILGAN: Foydalanuvchi serialni ko'rish"""
     serial_code = call.data.replace("user_view_serial_", "")
+    
+    if not serial_code:  # ✅ Bo'sh code tekshiruvi
+        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
+        return
     
     bot.delete_message(call.message.chat.id, call.message.message_id)
     
