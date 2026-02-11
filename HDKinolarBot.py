@@ -2609,7 +2609,9 @@ def user_view_serial_handler(call):
 def user_back_from_serials(call):
     """Seriallardan ortga"""
     bot.delete_message(call.message.chat.id, call.message.message_id)
-    user_panel(call.message.chat.id)
+    
+    if not (str(call.from_user.id) == ADMIN_ID or is_admin(call.from_user.id)):
+        user_panel(call.message.chat.id)
 
 
 
@@ -2639,7 +2641,7 @@ def show_statistics(msg):
         f"🎞️ Mavjud seriallar: *{serial_count}*\n"
     )
     markup = types.InlineKeyboardMarkup()
-    if not (str(msg.from_user.id) == ADMIN_ID or is_admin(msg.from_user.id)):
+    if (str(msg.from_user.id) == ADMIN_ID or is_admin(msg.from_user.id)):
         stats_text += f"👤 Foydalanganlar soni: *{user_count}*\n"
         
     # Super Admin uchun tayinlangan adminlar sonini ko‘rsatish
