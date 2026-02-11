@@ -1556,17 +1556,18 @@ def do_broadcast(msg):
 
 # =================== FILM O'CHIRISH MENYU ===================
 
-@bot.message_handler(func=lambda msg: msg. text == "❌ Film o'chirish")
+@bot.message_handler(func=lambda msg: msg.text == "❌ Film o'chirish")
 def delete_content_menu(msg):
-    """Film o'chirish menyu (kino/serial tanlash) - ✅ YANGI"""
+    """Film o'chirish menyu (kino/serial tanlash) - ✅ TUZATILGAN"""
     user_id = msg.from_user.id
     
-    if not (str(user_id) == ADMIN_ID or is_admin(user_id)):
+    # ✅ ADMIN TEKSHIRUVI - STRING VA INT SOLISHTIRISH
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
         bot.send_message(msg.chat.id, "❌ Siz admin emassiz!")
         return
     
     buttons = [
-        {"text": "🎥 Kino", "callback":  "delete_type_kino"},
+        {"text": "🎥 Kino", "callback": "delete_type_kino"},
         {"text": "🎞 Serial", "callback": "delete_type_serial"},
         {"text": "🔙 Ortga", "callback": "delete_back_to_admin"}
     ]
@@ -1574,232 +1575,59 @@ def delete_content_menu(msg):
     
     bot.send_message(
         msg.chat.id,
-        "🗑️ *Film O'chirish - Turini Tanlang*\n\n🎥 Kino yoki 🎞 Serial? ",
+        "🗑️ *Film O'chirish - Turini Tanlang*\n\n🎥 Kino yoki 🎞 Serial?",
         reply_markup=markup,
         parse_mode="Markdown"
     )
-
-# @bot.callback_query_handler(func=lambda call: call.data == "delete_type_kino")
-# def delete_type_kino(call):
-#     """Kino o'chirish - eski logika"""
-#     bot.delete_message(call.message.chat.id, call.message.message_id)
-#     bot.send_message(call.message.chat.id, "❌ O'chiriladigan kinoning kodini kiriting.")
-#     state[str(call.from_user.id)] = ["waiting_for_delete_kino"]
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "delete_back_to_admin")
 def delete_back_to_admin(call):
-    """Ortga tugmasi"""
-    bot.delete_message(call. message.chat.id, call. message.message_id)
+    """Ortga tugmasi - ✅ TUZATILGAN"""
+    user_id = call.from_user.id
+    
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
+        bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
+        return
+    
+    bot.delete_message(call.message.chat.id, call.message.message_id)
     markup = admin_panel()
     bot.send_message(
-        call.msg.chat.id,
+        call.message.chat.id,  # ✅ TUZATILGAN: call.msg.chat.id -> call.message.chat.id
         "🔐 *Admin paneli*",
         parse_mode="Markdown",
         reply_markup=markup
     )
-    
 
 
-
-
-
-
-# =================== BUTUN SERIALNI O'CHIRISH ===================
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("delete_serial_confirm_"))
-def delete_serial_all(call):
-    """Butun serialni o'chirish tasdiqlash"""
-    serial_code = call.data.replace("delete_serial_confirm_", "")
-    user_id = call.from_user.id
-    
-    if not (str(user_id) == ADMIN_ID or is_admin(user_id)):
-        bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
-        return
-    
-    serial = serials.find_one({"code": serial_code})
-    
-    if not serial:
-        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
-        return
-    
-    # MongoDB dan o'chirish
-    result = serials.delete_one({"code": serial_code})
-    
-    if result.deleted_count > 0:
-        bot.answer_callback_query(call.id, "✅ Serial o'chirildi!")
-        bot.delete_message(call.message.chat.id, call.message.message_id)
-        bot.send_message(
-            call.message.chat.id,
-            f"✅ *'{serial['name']}' seriali o'chirildi.*",
-            parse_mode="Markdown"
-        )
-    else:
-        bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi!")
-
-
-
-# =================== FASLLARNI KO'RSATISH (O'chirish uchun) ===================
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("delete_serial_seasons_"))
-def delete_serial_seasons(call):
-    """Serialning fasllarini ko'rsatish (o'chirish uchun, index-based)"""
-
-    serial_code = call.data.replace("delete_serial_seasons_", "")
-    user_id = call.from_user.id
-
-    # 🔐 Ruxsat
-    if not(user_id == ADMIN_ID or is_admin(user_id)):
-        bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
-        return
-
-    serial = serials.find_one({"code": serial_code})
-
-    if not serial:
-        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
-        return
-
-    bot.delete_message(call.message.chat.id, call.message.message_id)
-
-    markup = types.InlineKeyboardMarkup()
-    seasons = serial.get("seasons", [])
-
-    # ❌ Agar fasl yo‘q bo‘lsa
-    if not seasons:
-        markup.add(
-            types.InlineKeyboardButton(
-                "🔙 Ortga",
-                callback_data=f"delete_serial_{serial_code}"
-            )
-        )
-        bot.send_message(
-            call.message.chat.id,
-            f"🎞 *{serial['name']}*\n\n❌ Hech qanday mavsum yo'q.",
-            reply_markup=markup,
-            parse_mode="Markdown"
-        )
-        return
-
-    # 📺 Fasllar ro‘yxati
-    for idx, season in enumerate(seasons):
-        season_num = season.get("season_number")
-        season_name = season.get("season_name")
-        episodes_count = len(season.get("episodes", []))
-
-        if season_num:
-            display = f"📺 {season_num}-Mavsum ({episodes_count} qism)"
-        else:
-            display = f"📺 {season_name} ({episodes_count} qism)"
-
-        # ❗ MUHIM: callback’da faqat index
-        markup.add(
-            types.InlineKeyboardButton(
-                display,
-                callback_data=f"delete_season_select_{serial_code}_{idx}"
-            )
-        )
-
-    markup.add(
-        types.InlineKeyboardButton(
-            "🔙 Ortga",
-            callback_data=f"delete_serial_{serial_code}"
-        )
-    )
-
-    bot.send_message(
-        call.message.chat.id,
-        f"🎞 *{serial['name']}*\n\n📺 Mavsumni tanlang:",
-        reply_markup=markup,
-        parse_mode="Markdown"
-    )
-
-
-
-
-# =================== SERIAL O'CHIRISH CALLBACK ===================
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("delete_serial_"))
-def delete_serial_selected(call):
-    """Serial o'chirish uchun tanlandi"""
-    # "delete_serial_confirm_" dan ajratish kerak
-    if call.data.startswith("delete_serial_confirm_"):
-        return  # Bu boshqa handler uchun
-    
-    serial_code = call.data.replace("delete_serial_", "")
-    user_id = call.from_user.id
-    
-    if not (str(user_id) == ADMIN_ID or is_admin(user_id)):
-        bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
-        return
-    
-    serial = serials.find_one({"code": serial_code})
-    
-    if not serial:
-        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
-        return
-    
-    bot.delete_message(call.message.chat.id, call.message.message_id)
-    
-    # Mavsum statistikasi
-    season_count = len(serial.get('seasons', []))
-    total_episodes = sum(len(s.get('episodes', [])) for s in serial.get('seasons', []))
-    
-    markup = types.InlineKeyboardMarkup()
-    
-    # Fasllarni boshqarish
-    if season_count > 0:
-        markup.add(types.InlineKeyboardButton(
-            f"📺 Fasllarni boshqarish ({season_count} mavsum)",
-            callback_data=f"delete_serial_seasons_{serial_code}"
-        ))
-    
-    # Butunlay o'chirish
-    markup.add(types.InlineKeyboardButton(
-        "❌ Butun serialni o'chirish",
-        callback_data=f"delete_serial_confirm_{serial_code}"
-    ))
-    
-    markup.add(types.InlineKeyboardButton("🔙 Ortga", callback_data="delete_type_serial"))
-    
-    bot.send_message(
-        call.message.chat.id,
-        f"🎞 *{serial['name']}*\n\n"
-        f"📊 Jami: {season_count} mavsum, {total_episodes} qism\n\n"
-        f"Nima qilmoqchisiz?",
-        reply_markup=markup,
-        parse_mode="Markdown"
-    )
-
-
-
-# ============================================
-# SERIAL O'CHIRISH - TO'LIQ TUZATILGAN
-# HDKinolarBot.py da 
-# ============================================
+# =================== SERIAL O'CHIRISH MENYU ===================
 
 @bot.callback_query_handler(func=lambda call: call.data == "delete_type_serial")
 def delete_type_serial(call):
     """Serial o'chirish menyu - ✅ TUZATILGAN"""
     user_id = call.from_user.id
     
-    if not (str(user_id) == ADMIN_ID or is_admin(user_id)):
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
         bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
         return
     
-    # ✅ SERIALLAR RO'YXATINI OLISH
     serials_list = list(serials.find({}, {"_id": 0, "code": 1, "name": 1}))
     
     bot.delete_message(call.message.chat.id, call.message.message_id)
     
     if not serials_list:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Ortga", callback_data="delete_back_to_admin"))
         bot.send_message(
             call.message.chat.id,
             "📺 Hech qanday serial yo'q.",
+            reply_markup=markup,
             parse_mode="Markdown"
         )
         return
     
-    # ✅ SERIALLAR TUGMALARI
     markup = types.InlineKeyboardMarkup()
     
     for serial in serials_list:
@@ -1818,25 +1646,150 @@ def delete_type_serial(call):
     )
 
 
+# =================== SERIAL TANLANDI - FASLLARNI BOSHQARISH ===================
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("delete_serial_") 
+                            and not call.data.startswith("delete_serial_seasons_") 
+                            and not call.data.startswith("delete_serial_confirm_"))
+def delete_serial_selected(call):
+    """Serial tanlandi - fasllarni boshqarish yoki butun o'chirish"""
+    user_id = call.from_user.id
+    
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
+        bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
+        return
+    
+    serial_code = call.data.replace("delete_serial_", "")
+    serial = serials.find_one({"code": serial_code})
+    
+    if not serial:
+        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
+        return
+    
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    
+    season_count = len(serial.get('seasons', []))
+    total_episodes = sum(len(s.get('episodes', [])) for s in serial.get('seasons', []))
+    
+    markup = types.InlineKeyboardMarkup()
+    
+    # ✅ TUZATILGAN: serial_select_ga o'xshash - season_number/name/idx ishlatish
+    if season_count > 0:
+        markup.add(types.InlineKeyboardButton(
+            f"📺 Fasllarni boshqarish ({season_count} mavsum)",
+            callback_data=f"delete_serial_seasons_{serial_code}"
+        ))
+    
+    markup.add(types.InlineKeyboardButton(
+        "❌ Butun serialni o'chirish",
+        callback_data=f"delete_serial_confirm_{serial_code}"
+    ))
+    
+    markup.add(types.InlineKeyboardButton("🔙 Ortga", callback_data="delete_type_serial"))
+    
+    bot.send_message(
+        call.message.chat.id,
+        f"📺 *{serial['name']}*\n\n"
+        f"📊 Jami: {season_count} mavsum, {total_episodes} qism\n\n"
+        f"Nima qilmoqchisiz?",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
 
 
+# =================== FASLLARNI KO'RSATISH (O'CHIRISH UCHUN) - ✅ TUZATILGAN ===================
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("delete_serial_seasons_"))
+def delete_serial_seasons(call):
+    """Serialning fasllarini ko'rsatish (o'chirish uchun) - serial_select_ga o'xshash"""
+    serial_code = call.data.replace("delete_serial_seasons_", "")
+    user_id = call.from_user.id
+
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
+        bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
+        return
+
+    serial = serials.find_one({"code": serial_code})
+
+    if not serial:
+        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
+        return
+
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+    markup = types.InlineKeyboardMarkup()
+    seasons = serial.get("seasons", [])
+
+    if not seasons:
+        markup.add(
+            types.InlineKeyboardButton(
+                "🔙 Ortga",
+                callback_data=f"delete_serial_{serial_code}"
+            )
+        )
+        bot.send_message(
+            call.message.chat.id,
+            f"🎞 *{serial['name']}*\n\n❌ Hech qanday mavsum yo'q.",
+            reply_markup=markup,
+            parse_mode="Markdown"
+        )
+        return
+
+    # ✅ TUZATILGAN: serial_select_ga o'xshash - season_number/name/idx
+    for idx, season in enumerate(seasons):
+        season_num = season.get("season_number")
+        season_name = season.get("season_name")
+        episodes_count = len(season.get("episodes", []))
+
+        if season_num:
+            display = f"📺 {season_num}-Mavsum ({episodes_count} qism)"
+            season_id = season_num  # ✅ season_number
+        elif season_name:
+            display = f"📺 {season_name} ({episodes_count} qism)"
+            season_id = f"name_{season_name}"  # ✅ name_ prefix
+        else:
+            display = f"📺 Mavsum {idx + 1} ({episodes_count} qism)"
+            season_id = f"idx_{idx}"  # ✅ idx_ prefix
+
+        markup.add(
+            types.InlineKeyboardButton(
+                display,
+                callback_data=f"delete_season_select_{serial_code}_{season_id}"
+            )
+        )
+
+    markup.add(
+        types.InlineKeyboardButton(
+            "🔙 Ortga",
+            callback_data=f"delete_serial_{serial_code}"
+        )
+    )
+
+    bot.send_message(
+        call.message.chat.id,
+        f"🎞 *{serial['name']}*\n\n📺 Mavsumni tanlang:",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
 
 
-
-# =================== MAVSUM TANLANDI - QISMLAR YOKI BUTUN MAVSUM ===================
-
+# =================== MAVSUM TANLANDI - QISMLAR YOKI BUTUN MAVSUM - ✅ TUZATILGAN ===================
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("delete_season_select_"))
 def delete_season_or_episode(call):
     """Mavsum tanlandi - qismlarini ko'rsatish yoki butun mavsumni o'chirish"""
-    parts = call.data.split("_")
-    serial_code = parts[3]
-    season_identifier = parts[4]  # Bu raqam yoki index bo'lishi mumkin
     user_id = call.from_user.id
     
-    if not (str(user_id) == ADMIN_ID or is_admin(user_id)):
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
         bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
         return
+    
+    parts = call.data.split("_", 4)
+    serial_code = parts[3]
+    season_id = parts[4]  # ✅ season_number, name_xxxxx, yoki idx_x
     
     serial = serials.find_one({"code": serial_code})
     
@@ -1844,31 +1797,39 @@ def delete_season_or_episode(call):
         bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
         return
     
-    # Mavsumni topish (raqam yoki index bo'yicha)
+    # ✅ TUZATILGAN: season_id parseytlash (serial_select_ga o'xshash)
     season = None
-    season_idx = None
     season_display = ""
     
-    # Avval season_number sifatida tekshiramiz
     try:
-        season_num = int(season_identifier)
-        for idx, s in enumerate(serial.get('seasons', [])):
+        # Birinchi, season_number bo'yicha qidiramiz
+        season_num = int(season_id)
+        for s in serial.get('seasons', []):
             if s.get('season_number') == season_num:
                 season = s
-                season_idx = idx
                 season_display = f"{season_num}-Mavsum"
                 break
-    except ValueError:
-        pass
+        
+        # Agar topilmasa, index bo'yicha
+        if not season and season_num < len(serial.get('seasons', [])):
+            season = serial['seasons'][season_num]
+            season_display = season.get('season_name') or f"Mavsum {season_num + 1}"
     
-    # Agar topilmasa, season_name bo'yicha qidiramiz
-    if not season:
-        for idx, s in enumerate(serial.get('seasons', [])):
-            if s.get('season_name') == season_identifier:
-                season = s
-                season_idx = idx
-                season_display = season_identifier
-                break
+    except ValueError:
+        # season_name yoki idx_ sifatida
+        if season_id.startswith("name_"):
+            season_name = season_id.replace("name_", "")
+            for s in serial.get('seasons', []):
+                if s.get('season_name') == season_name:
+                    season = s
+                    season_display = season_name
+                    break
+        
+        elif season_id.startswith("idx_"):
+            idx_num = int(season_id.replace("idx_", ""))
+            if idx_num < len(serial.get('seasons', [])):
+                season = serial['seasons'][idx_num]
+                season_display = season.get('season_name') or f"Mavsum {idx_num + 1}"
     
     if not season:
         bot.answer_callback_query(call.id, "❌ Mavsum topilmadi!")
@@ -1877,7 +1838,6 @@ def delete_season_or_episode(call):
     bot.delete_message(call.message.chat.id, call.message.message_id)
     
     markup = types.InlineKeyboardMarkup()
-    
     episodes = season.get("episodes", [])
     
     if episodes:
@@ -1885,13 +1845,13 @@ def delete_season_or_episode(call):
             ep_num = episode["episode_number"]
             markup.add(types.InlineKeyboardButton(
                 f"🎬 {ep_num}-qism",
-                callback_data=f"delete_episode_{serial_code}_{season_idx}_{ep_num}"
+                callback_data=f"delete_episode_{serial_code}_{season_id}_{ep_num}"
             ))
     
     # Butun mavsumni o'chirish
     markup.add(types.InlineKeyboardButton(
         f"❌ Butun {season_display}ni o'chirish",
-        callback_data=f"delete_season_confirm_{serial_code}_{season_idx}"
+        callback_data=f"delete_season_confirm_{serial_code}_{season_id}"
     ))
     
     markup.add(types.InlineKeyboardButton("🔙 Ortga", callback_data=f"delete_serial_seasons_{serial_code}"))
@@ -1899,7 +1859,7 @@ def delete_season_or_episode(call):
     ep_count = len(episodes)
     
     text = f"📺 *{serial['name']}*\n"
-    text += f"🎬 {season_display}\n\n"
+    text += f"🎬 *{season_display}*\n\n"
     
     if ep_count > 0:
         text += f"Qismlar: {ep_count} ta\n\nQismni tanlang yoki butun mavsumni o'chiring:"
@@ -1913,40 +1873,124 @@ def delete_season_or_episode(call):
         parse_mode="Markdown"
     )
 
-# =================== BUTUN MAVSUMNI O'CHIRISH ===================
+
+# =================== BUTUN MAVSUMNI O'CHIRISH - ✅ TUZATILGAN ===================
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("delete_season_confirm_"))
 def delete_season_all(call):
-    """Butun mavsumni o'chirish (index-based)"""
-
-    parts = call.data.split("_")
-    serial_code = parts[3]
-    season_idx = int(parts[4])
+    """Butun mavsumni o'chirish"""
     user_id = call.from_user.id
 
-    # 🔐 Ruxsat tekshiruvi
-    if not (user_id == ADMIN_ID or is_admin(user_id)):
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
         bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
         return
 
+    parts = call.data.split("_", 4)
+    serial_code = parts[3]
+    season_id = parts[4]  # ✅ season_number, name_xxxxx, yoki idx_x
+
     serial = serials.find_one({"code": serial_code})
 
-    if not serial or season_idx >= len(serial.get("seasons", [])):
+    if not serial:
+        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
+        return
+
+    # ✅ TUZATILGAN: season_id parseytlash
+    season = None
+    season_index = None
+    season_display = ""
+
+    try:
+        season_num = int(season_id)
+        for idx, s in enumerate(serial.get('seasons', [])):
+            if s.get('season_number') == season_num:
+                season = s
+                season_index = idx
+                season_display = f"{season_num}-Mavsum"
+                break
+        
+        if not season and season_num < len(serial.get('seasons', [])):
+            season = serial['seasons'][season_num]
+            season_index = season_num
+            season_display = season.get('season_name') or f"Mavsum {season_num + 1}"
+
+    except ValueError:
+        if season_id.startswith("name_"):
+            season_name = season_id.replace("name_", "")
+            for idx, s in enumerate(serial.get('seasons', [])):
+                if s.get('season_name') == season_name:
+                    season = s
+                    season_index = idx
+                    season_display = season_name
+                    break
+        
+        elif season_id.startswith("idx_"):
+            idx_num = int(season_id.replace("idx_", ""))
+            if idx_num < len(serial.get('seasons', [])):
+                season = serial['seasons'][idx_num]
+                season_index = idx_num
+                season_display = season.get('season_name') or f"Mavsum {idx_num + 1}"
+
+    if not season or season_index is None:
         bot.answer_callback_query(call.id, "❌ Mavsum topilmadi!")
         return
 
-    # 🏷 Mavsum nomi (faqat ko‘rsatish uchun)
-    season = serial["seasons"][season_idx]
-    season_display = str(
-        season.get("season_number") or season.get("season_name", "Mavsum")
+    ep_count = len(season.get('episodes', []))
+
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton(
+            "✅ Ha, O'chiring",
+            callback_data=f"delete_season_execute_{serial_code}_{season_id}_{season_index}"
+        ),
+        types.InlineKeyboardButton(
+            "❌ Yo'q, Qaytish",
+            callback_data=f"delete_season_select_{serial_code}_{season_id}"
+        )
     )
 
-    # 🗑 Mavsumni o‘chirish
-    serial["seasons"].pop(season_idx)
+    bot.send_message(
+        call.message.chat.id,
+        f"⚠️ *{season_display} O'chirilishiga Ishonchingiz Komilmi?*\n\n"
+        f"Bu mavsumda {ep_count} ta qism bor!\n\n"
+        f"Barcha ma'lumot yo'q bo'lib ketadi!",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("delete_season_execute_"))
+def delete_season_execute(call):
+    """Mavsumni o'chirish bajarilishi"""
+    user_id = call.from_user.id
+
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
+        bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
+        return
+
+    parts = call.data.split("_")
+    serial_code = parts[3]
+    season_index = int(parts[-1])  # ✅ oxirgi element - index
+
+    serial = serials.find_one({"code": serial_code})
+
+    if not serial or season_index >= len(serial.get("seasons", [])):
+        bot.answer_callback_query(call.id, "❌ Mavsum topilmadi!")
+        return
+
+    season = serial["seasons"][season_index]
+    season_display = str(season.get("season_number") or season.get("season_name", "Mavsum"))
+
+    # 🗑 Mavsumni o'chirish
+    new_seasons = serial["seasons"][:season_index] + serial["seasons"][season_index+1:]
 
     result = serials.update_one(
         {"code": serial_code},
-        {"$set": {"seasons": serial["seasons"]}}
+        {"$set": {"seasons": new_seasons}}
     )
 
     if result.matched_count == 0:
@@ -1959,7 +2003,7 @@ def delete_season_all(call):
     # 🔄 Yangilangan serialni olish
     serial = serials.find_one({"code": serial_code})
 
-    # 📺 Agar hali mavsumlar bo‘lsa
+    # 📺 Agar hali mavsumlar bo'lsa
     if serial and serial.get("seasons"):
         markup = types.InlineKeyboardMarkup()
 
@@ -1970,14 +2014,18 @@ def delete_season_all(call):
 
             if season_num:
                 display = f"📺 {season_num}-Mavsum ({episodes_count} qism)"
-            else:
+                season_id = season_num
+            elif season_name:
                 display = f"📺 {season_name} ({episodes_count} qism)"
+                season_id = f"name_{season_name}"
+            else:
+                display = f"📺 Mavsum {idx + 1} ({episodes_count} qism)"
+                season_id = f"idx_{idx}"
 
-            # ❗ FAOL QOIDA: faqat index
             markup.add(
                 types.InlineKeyboardButton(
                     display,
-                    callback_data=f"delete_season_select_{serial_code}_{idx}"
+                    callback_data=f"delete_season_select_{serial_code}_{season_id}"
                 )
             )
 
@@ -1992,52 +2040,144 @@ def delete_season_all(call):
             call.message.chat.id,
             f"✅ {season_display} o'chirildi!\n\n"
             f"🎞 *{serial['name']}*\n\n"
-            f"📺 Boshqa mavsum:",
+            f"📺 Boshqa mavsumlar:",
             reply_markup=markup,
             parse_mode="Markdown"
         )
 
-    # ❌ Agar mavsum qolmagan bo‘lsa
+    # ❌ Agar mavsum qolmagan bo'lsa
     else:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton(
+                "🔙 Ortga",
+                callback_data=f"delete_serial_{serial_code}"
+            )
+        )
         bot.send_message(
             call.message.chat.id,
             f"✅ {season_display} o'chirildi!\n\n"
             f"❌ Serialda boshqa mavsum yo'q.",
+            reply_markup=markup,
             parse_mode="Markdown"
         )
 
 
-# =================== QISMNI O'CHIRISH ===================
+# =================== QISMNI O'CHIRISH - ✅ TUZATILGAN ===================
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("delete_episode_"))
 def delete_episode_confirm(call):
-    """Qismni o'chirish (index-based)"""
-
-    parts = call.data.split("_")
-    serial_code = parts[2]
-    season_idx = int(parts[3])
-    episode_number = int(parts[4])
+    """Qismni o'chirish"""
     user_id = call.from_user.id
 
-    # 🔐 Ruxsat
-    if not(user_id == ADMIN_ID or is_admin(user_id)):
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
         bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
         return
 
+    parts = call.data.split("_", 5)
+    serial_code = parts[2]
+    season_id = parts[3]  # ✅ season_number, name_xxxxx, yoki idx_x
+    episode_number = int(parts[4])
+
     serial = serials.find_one({"code": serial_code})
 
-    if not serial or season_idx >= len(serial.get("seasons", [])):
+    if not serial:
+        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
+        return
+
+    # ✅ TUZATILGAN: season_id parseytlash
+    season = None
+    season_index = None
+
+    try:
+        season_num = int(season_id)
+        for idx, s in enumerate(serial.get('seasons', [])):
+            if s.get('season_number') == season_num:
+                season = s
+                season_index = idx
+                break
+        
+        if not season and season_num < len(serial.get('seasons', [])):
+            season = serial['seasons'][season_num]
+            season_index = season_num
+
+    except ValueError:
+        if season_id.startswith("name_"):
+            season_name = season_id.replace("name_", "")
+            for idx, s in enumerate(serial.get('seasons', [])):
+                if s.get('season_name') == season_name:
+                    season = s
+                    season_index = idx
+                    break
+        
+        elif season_id.startswith("idx_"):
+            idx_num = int(season_id.replace("idx_", ""))
+            if idx_num < len(serial.get('seasons', [])):
+                season = serial['seasons'][idx_num]
+                season_index = idx_num
+
+    if not season or season_index is None:
         bot.answer_callback_query(call.id, "❌ Mavsum topilmadi!")
         return
 
-    season = serial["seasons"][season_idx]
+    episodes = season.get("episodes", [])
+    episode_to_delete = next((ep for ep in episodes if ep["episode_number"] == episode_number), None)
+
+    if not episode_to_delete:
+        bot.answer_callback_query(call.id, "❌ Qism topilmadi!")
+        return
+
+    season_display = str(season.get('season_number') or season.get('season_name', 'Mavsum'))
+
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton(
+            "✅ Ha, O'chiring",
+            callback_data=f"delete_episode_execute_{serial_code}_{season_id}_{season_index}_{episode_number}"
+        ),
+        types.InlineKeyboardButton(
+            "❌ Yo'q, Qaytish",
+            callback_data=f"delete_season_select_{serial_code}_{season_id}"
+        )
+    )
+
+    bot.send_message(
+        call.message.chat.id,
+        f"⚠️ *{episode_number}-Qism O'chirilishiga Ishonchingiz Komilmi?*",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("delete_episode_execute_"))
+def delete_episode_execute(call):
+    """Qismni o'chirish bajarilishi"""
+    user_id = call.from_user.id
+
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
+        bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
+        return
+
+    parts = call.data.split("_")
+    serial_code = parts[3]
+    season_index = int(parts[-2])  # ✅ season_index
+    episode_number = int(parts[-1])  # ✅ episode_number
+
+    serial = serials.find_one({"code": serial_code})
+
+    if not serial or season_index >= len(serial.get("seasons", [])):
+        bot.answer_callback_query(call.id, "❌ Mavsum topilmadi!")
+        return
+
+    season = serial["seasons"][season_index]
     episodes = season.get("episodes", [])
 
     # 🗑 Qismni o'chirish
-    new_episodes = [
-        ep for ep in episodes
-        if ep.get("episode_number") != episode_number
-    ]
+    new_episodes = [ep for ep in episodes if ep.get("episode_number") != episode_number]
 
     if len(new_episodes) == len(episodes):
         bot.answer_callback_query(call.id, "❌ Qism topilmadi!")
@@ -2045,26 +2185,35 @@ def delete_episode_confirm(call):
 
     result = serials.update_one(
         {"code": serial_code},
-        {"$set": {f"seasons.{season_idx}.episodes": new_episodes}}
+        {"$set": {f"seasons.{season_index}.episodes": new_episodes}}
     )
 
     if result.matched_count == 0:
         bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi!")
         return
 
-    season_display = str(
-        season.get("season_number") or season.get("season_name", "Mavsum")
-    )
+    season_display = str(season.get("season_number") or season.get("season_name", "Mavsum"))
 
     bot.answer_callback_query(call.id, f"✅ {episode_number}-qism o'chirildi!")
     bot.delete_message(call.message.chat.id, call.message.message_id)
 
     # 🔄 Yangilangan serialni qayta olish
     serial = serials.find_one({"code": serial_code})
-    season = serial["seasons"][season_idx]
+    season = serial["seasons"][season_index]
 
-    # 🎬 Agar hali qismlar bo‘lsa
+    # 🎬 Agar hali qismlar bo'lsa
     if season.get("episodes"):
+        # ✅ TUZATILGAN: season_id ni tanlash
+        season_num = season.get('season_number')
+        season_name = season.get('season_name')
+        
+        if season_num:
+            season_id = season_num
+        elif season_name:
+            season_id = f"name_{season_name}"
+        else:
+            season_id = f"idx_{season_index}"
+        
         markup = types.InlineKeyboardMarkup()
 
         for ep in season["episodes"]:
@@ -2072,14 +2221,14 @@ def delete_episode_confirm(call):
             markup.add(
                 types.InlineKeyboardButton(
                     f"🎬 {ep_num}-qism",
-                    callback_data=f"delete_episode_{serial_code}_{season_idx}_{ep_num}"
+                    callback_data=f"delete_episode_{serial_code}_{season_id}_{ep_num}"
                 )
             )
 
         markup.add(
             types.InlineKeyboardButton(
                 f"❌ Butun {season_display}ni o'chirish",
-                callback_data=f"delete_season_confirm_{serial_code}_{season_idx}"
+                callback_data=f"delete_season_confirm_{serial_code}_{season_id}"
             )
         )
 
@@ -2094,22 +2243,100 @@ def delete_episode_confirm(call):
             call.message.chat.id,
             f"✅ {episode_number}-qism o'chirildi!\n\n"
             f"📺 *{serial['name']}*\n"
-            f"🎬 {season_display}\n\n"
+            f"🎬 *{season_display}*\n\n"
             f"Boshqa qismlar:",
             reply_markup=markup,
             parse_mode="Markdown"
         )
 
-    # ❌ Agar qism qolmagan bo‘lsa
+    # ❌ Agar qism qolmagan bo'lsa
     else:
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton(
+                "🔙 Ortga",
+                callback_data=f"delete_serial_seasons_{serial_code}"
+            )
+        )
         bot.send_message(
             call.message.chat.id,
             f"✅ {episode_number}-qism o'chirildi!\n\n"
             f"❌ {season_display}da boshqa qism yo'q.",
+            reply_markup=markup,
             parse_mode="Markdown"
         )
 
 
+# =================== SERIAL BUTUNLAY O'CHIRISH ===================
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("delete_serial_confirm_"))
+def delete_serial_confirm(call):
+    """Serialni butun o'chirish - tasdiqlash"""
+    user_id = call.from_user.id
+    
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
+        bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
+        return
+    
+    serial_code = call.data.replace("delete_serial_confirm_", "")
+    serial = serials.find_one({"code": serial_code})
+    
+    if not serial:
+        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
+        return
+    
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    
+    season_count = len(serial.get('seasons', []))
+    total_episodes = sum(len(s.get('episodes', [])) for s in serial.get('seasons', []))
+    
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton(
+            "✅ Ha, O'chiring",
+            callback_data=f"delete_serial_execute_{serial_code}"
+        ),
+        types.InlineKeyboardButton(
+            "❌ Yo'q, Qaytish",
+            callback_data=f"delete_serial_{serial_code}"
+        )
+    )
+    
+    bot.send_message(
+        call.message.chat.id,
+        f"⚠️ *{serial['name']} O'chirilishiga Ishonchingiz Komilmi?*\n\n"
+        f"Bu serialda {season_count} mavsum va {total_episodes} ta qism bor!\n\n"
+        f"Barcha ma'lumot yo'q bo'lib ketadi!",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("delete_serial_execute_"))
+def delete_serial_execute(call):
+    """Serialni o'chirish bajarilishi"""
+    user_id = call.from_user.id
+    
+    # ✅ ADMIN TEKSHIRUVI
+    if not (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):
+        bot.answer_callback_query(call.id, "❌ Ruxsat yo'q!")
+        return
+    
+    serial_code = call.data.replace("delete_serial_execute_", "")
+    
+    from serial.serial_db import delete_serial
+    if delete_serial(serial_code):
+        bot.answer_callback_query(call.id, "✅ Serial o'chirildi!")
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        
+        bot.send_message(
+            call.message.chat.id,
+            "✅ *Serial muvaffaqiyatli o'chirildi!*",
+            parse_mode="Markdown"
+        )
+    else:
+        bot.answer_callback_query(call.id, "❌ O'chirishda xato!")
 
 
 
@@ -2222,14 +2449,14 @@ def movie_list(msg):
     
     
 
-# =================== SERIALLAR (User uchun) - ✅ YANGI ===================
+# =================== SERIALLAR (User uchun) - ✅ TUZATILGAN ===================
 
 @bot.message_handler(func=lambda msg: msg.text == "📥 Seriallar")
 def show_user_serials(msg):
-    """Foydalanuvchi uchun seriallar ro'yxati"""
-    user = msg. from_user.id
+    """✅ TUZATILGAN: Foydalanuvchi uchun seriallar ro'yxati"""
+    user_id = msg.from_user.id  # ✅ TUZATILGAN: msg.from_user.id emas, to'g'ri
     
-    if not check_sub(user):
+    if not check_sub(user_id):
         upload_mdb(msg)
         return
     
@@ -2247,7 +2474,7 @@ def show_user_serials(msg):
             callback_data=f"user_view_serial_{serial['code']}"
         ))
     
-    markup.add(types.InlineKeyboardButton("🔙", callback_data="user_back_from_serials"))
+    markup.add(types.InlineKeyboardButton("🔙 Ortga", callback_data="user_back_from_serials"))
     
     bot.send_message(
         msg.chat.id,
@@ -2256,34 +2483,18 @@ def show_user_serials(msg):
         parse_mode="Markdown"
     )
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("user_season_"))
-def user_view_season(call):
-    parts = call.data.split("_")
-    serial_code = parts[2]
-    season_idx = int(parts[3])
 
-    serial = get_serial(serial_code)
+# =================== SERIAL TANLANDI (USER) - ✅ TUZATILGAN ===================
 
-    if not serial or season_idx >= len(serial.get("seasons", [])):
-        bot.answer_callback_query(call.id, "❌ Fasl topilmadi!")
-        return
-
-    season = serial["seasons"][season_idx]
-
-    season_display = str(
-        season.get("season_number") or season.get("season_name", "Fasl")
-    )
-
-    bot.answer_callback_query(call.id)
+@bot.callback_query_handler(func=lambda call: call.data.startswith("user_view_serial_"))
+def user_view_serial_handler(call):
+    """✅ TUZATILGAN: Foydalanuvchi serialni ko'rish"""
+    serial_code = call.data.replace("user_view_serial_", "")
+    
     bot.delete_message(call.message.chat.id, call.message.message_id)
-
-    # ⬇️ shu yerda qismlarni ko‘rsatish funksiyang chaqiriladi
-    show_serial_for_user(
-        call.message.chat.id,
-        serial_code,
-        season_idx,
-        season_display
-    )
+    
+    # serial_user.py dan show_serial_for_user chaqiramiz
+    show_serial_for_user(call.message.chat.id, serial_code)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "user_back_from_serials")

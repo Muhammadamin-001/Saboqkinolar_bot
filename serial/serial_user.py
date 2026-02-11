@@ -6,14 +6,14 @@ Foydalanuvchi uchun serialni ko'rish, qismlar, playback
 
 from telebot import types
 from utils.db_config import bot
-from .serial_db import get_serial, get_season#, get_episode, get_all_serials
+from .serial_db import get_serial, get_season, get_episode
 
 kanal_link = "https://t.me/Saboq_kinolar"
 
 # =================== FOYDALANUVCHI UCHUN SERIAL KO'RISH ===================
 
 def show_serial_for_user(chat_id, serial_code):
-    """Serialni ko'rsatish (rasm + nomi + tavsif + fasllar)"""
+    """✅ TUZATILGAN: Serialni ko'rsatish - season_number orqali"""
 
     serial = get_serial(serial_code)
 
@@ -29,17 +29,20 @@ def show_serial_for_user(chat_id, serial_code):
             season_num = season.get("season_number")
             season_name = season.get("season_name")
 
-            # 🏷 Foydalanuvchiga ko‘rinadigan nom
+            # 🏷 Foydalanuvchiga ko'rinadigan nom
             if season_num:
                 display = f"📺 {season_num}-fasl"
+                # ✅ TUZATILGAN: season_num jo'natamiz, idx emas
+                callback_id = season_num
             else:
                 display = f"📺 {season_name}"
+                # Agar raqam bo'lmasa, season_name orqali qidirish uchun special ID
+                callback_id = f"name_{season_name}"
 
-            # ❗ MUHIM: faqat index
             markup.add(
                 types.InlineKeyboardButton(
                     display,
-                    callback_data=f"user_season_{serial_code}_{idx}"
+                    callback_data=f"user_season_{serial_code}_{callback_id}"
                 )
             )
 
@@ -64,18 +67,38 @@ def show_serial_for_user(chat_id, serial_code):
     )
 
 
-
-#===== *** Qismlar xabari =======
+# =================== QISMLAR XABARI ===================
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("user_season_"))
 def show_episodes_for_user(call):
-    parts = call.data.split("_")
+    """✅ TUZATILGAN: season_number yoki season_name orqali qidirish"""
+    parts = call.data.split("_", 3)  # 3 qismga bo'lish
     serial_code = parts[2]
-    season_number = int(parts[3])
-    page = int(parts[5]) if "page" in call.data else 0
+    season_id = parts[3]  # Bu season_number yoki name_xxxxx bo'lishi mumkin
+    page = int(call.data.split("_page_")[-1]) if "_page_" in call.data else 0
 
     serial = get_serial(serial_code)
-    season = get_season(serial_code, season_number)
+    if not serial:
+        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
+        return
+
+    # ✅ TUZATILGAN: Season ID ni parseytlash
+    season = None
+    if season_id.startswith("name_"):
+        # Season name orqali qidirish
+        season_name = season_id.replace("name_", "")
+        seasons = serial.get("seasons", [])
+        for s in seasons:
+            if s.get("season_name") == season_name:
+                season = s
+                break
+    else:
+        # Season number orqali qidirish
+        try:
+            season_num = int(season_id)
+            season = get_season(serial_code, season_num)
+        except ValueError:
+            season = None
 
     if not season:
         bot.answer_callback_query(call.id, "❌ Fasl topilmadi!")
@@ -103,7 +126,7 @@ def show_episodes_for_user(call):
         row.append(
             types.InlineKeyboardButton(
                 str(ep_num),
-                callback_data=f"user_episode_{serial_code}_{season_number}_{ep_num}"
+                callback_data=f"user_episode_{serial_code}_{season_id}_{ep_num}"
             )
         )
         if len(row) == PER_ROW:
@@ -119,162 +142,143 @@ def show_episodes_for_user(call):
         nav.append(
             types.InlineKeyboardButton(
                 "⬅️ Oldingi",
-                callback_data=f"user_season_{serial_code}_{season_number}_page_{page-1}"
+                callback_data=f"user_season_{serial_code}_{season_id}_page_{page-1}"
             )
         )
     if end < len(total):
         nav.append(
             types.InlineKeyboardButton(
                 "Keyingi ➡️",
-                callback_data=f"user_season_{serial_code}_{season_number}_page_{page+1}"
+                callback_data=f"user_season_{serial_code}_{season_id}_page_{page+1}"
             )
         )
 
     if nav:
         markup.row(*nav)
 
+    # 🔙 ORTGA TUGMASI
     markup.add(
-        types.InlineKeyboardButton("🔙 Ortga", callback_data=f"user_serial_{serial_code}")
+        types.InlineKeyboardButton(
+            "🔙 Ortga",
+            callback_data=f"user_view_serial_{serial_code}"
+        )
     )
 
-    text = (
-        f"\t\t\t\t📺 *{serial['name']} — {season_number}-fasl*\n\n"
-        f"Qismlar: {len(total)}\t\t\t\t\t||\t\t"
-        f"Sahifa: {page + 1}/{(len(total) + PER_PAGE - 1)//PER_PAGE}\t\t\t\n\n"
-        "Qismni tanlang:"
+    # Qismlar menyu
+    season_num = season.get("season_number", "")
+    season_name = season.get("season_name", "")
+    season_display = f"{season_num}-fasl" if season_num else season_name
+
+    caption = (
+        f"📺 *{serial['name']}*\n"
+        f"🎬 *{season_display}*\n\n"
+        f"Qismlarni tanlang:"
     )
 
     bot.send_message(
         call.message.chat.id,
-        text,
-        parse_mode="Markdown",
-        reply_markup=markup
+        caption,
+        reply_markup=markup,
+        parse_mode="Markdown"
     )
 
 
+# =================== QISMNI YUBORISH ===================
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("user_episode_"))
 def send_episode_to_user(call):
-    """Qismning videosini yuborish"""
-    parts = call. data.split("_")
+    """✅ TUZATILGAN: Qismni foydalanuvchiga yuborish"""
+    parts = call.data.split("_", 4)  # 4 qismga bo'lish
     serial_code = parts[2]
-    season_number = int(parts[3])
+    season_id = parts[3]  # season_number yoki name_xxxxx
     episode_number = int(parts[4])
-    
-    season = get_season(serial_code, season_number)
-    
+
+    serial = get_serial(serial_code)
+    if not serial:
+        bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
+        return
+
+    # ✅ TUZATILGAN: Season ni topish
+    season = None
+    if season_id.startswith("name_"):
+        season_name = season_id.replace("name_", "")
+        for s in serial.get("seasons", []):
+            if s.get("season_name") == season_name:
+                season = s
+                break
+    else:
+        try:
+            season_num = int(season_id)
+            season = get_season(serial_code, season_num)
+        except ValueError:
+            season = None
+
     if not season:
         bot.answer_callback_query(call.id, "❌ Fasl topilmadi!")
         return
-    
+
     # Qismni topish
     episode = None
-    episodes = season.get("episodes", [])
-    
-    for ep in episodes:
-        if ep["episode_number"] == episode_number: 
+    for ep in season.get("episodes", []):
+        if ep["episode_number"] == episode_number:
             episode = ep
             break
-    
-    # Agar episode yo'q bo'lsa, full_files'dan olish
-    if not episode: 
-        full_files = season.get("full_files", [])
-        if episode_number <= len(full_files):
-            episode = {
-                "episode_number": episode_number,
-                "file_id": full_files[episode_number - 1]
-            }
-    
+
     if not episode:
         bot.answer_callback_query(call.id, "❌ Qism topilmadi!")
         return
-    
 
-    
-    serial = get_serial(serial_code)
-    
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("❌", callback_data="delete_seria"))
-    
-    caption = f"🎞 *{serial['name']}*\n\t\t\t\t{season_number}-fasl, {episode_number}-qism\n\n🤖 *Yuklovchi*: @Saboq\_kinolar\_bot"
-    
-    bot.send_video(
+    file_id = episode.get("file_id")
+    if file_id:
+        try:
+            bot.send_video(
+                call.message.chat.id,
+                file_id,
+                caption=f"📺 {serial['name']} - Fasl {season_id}, Qism {episode_number}",
+                parse_mode="Markdown"
+            )
+            bot.answer_callback_query(call.id, "✅ Video jo'natilmoqda...")
+        except Exception as e:
+            bot.answer_callback_query(call.id, f"❌ Xato: {str(e)[:50]}")
+            print(f"    Video yuborish xatosi: {e}")
+    else:
+        bot.answer_callback_query(call.id, "❌ Video topilmadi!")
+
+
+# =================== ORTGA TUGMALARI ===================
+
+@bot.callback_query_handler(func=lambda call: call.data == "user_back")
+def user_back_to_home(call):
+    """Seriallardan asosiy menyuga qaytish"""
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    from utils.admin_utils import user_panel
+    markup = user_panel()
+    bot.send_message(
         call.message.chat.id,
-        episode["file_id"],
-        caption=caption,
-        parse_mode="Markdown",
-        reply_markup=markup
+        "👤 *Foydalanuvchi Paneli*",
+        reply_markup=markup,
+        parse_mode="Markdown"
     )
 
 
-
-    
-
-#======== Foydalanuvchi kinoni O'chirib yuborsa======
-@bot.callback_query_handler(func=lambda call: call.data == "delete_seria")
-def delete_movie_warning(call):
-    markup = types.InlineKeyboardMarkup()
-    markup.add(
-        types.InlineKeyboardButton("❌ O'chirish", callback_data="delete_movie_confirm")
-    )
-
-    bot.answer_callback_query(
-        call.id,
-        "⚠️ Rostdan ham videoni o‘chirmoqchimisiz?\n\nYana bir marta bosing ...❌",
-        show_alert=True
-    )
-
-    # ❗ XABAR O‘CHMAYDI
-    # faqat tugma o‘zgaradi
-    bot.edit_message_reply_markup(
-        call.message.chat.id,
-        call.message.message_id,
-        reply_markup=markup
-    )
-    
-@bot.callback_query_handler(func=lambda call: call.data == "delete_movie_confirm")
-def delete_movie_confirm(call):
-    try:
-        bot.delete_message(call.message.chat.id, call.message.message_id)
-        bot.answer_callback_query(call.id, "✅ Video o‘chirildi")
-    except Exception as e:
-        print(e)
-        bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi")
-
-
-
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("user_serial_"))
-def user_serial_back(call):
-    """Serial menuyga qaytish"""
-    serial_code = call.data.replace("user_serial_", "")
+@bot.callback_query_handler(func=lambda call: call.data == "user_view_serial_" or call.data.startswith("user_view_serial_"))
+def user_view_serial(call):
+    """✅ TUZATILGAN: Foydalanuvchi serialni ko'rish"""
+    serial_code = call.data.replace("user_view_serial_", "")
     
     bot.delete_message(call.message.chat.id, call.message.message_id)
     show_serial_for_user(call.message.chat.id, serial_code)
 
-@bot.callback_query_handler(func=lambda call: call.data == "user_back")
-def user_back(call):
-    """Ortga (asosiy menyu)"""
+
+@bot.callback_query_handler(func=lambda call: call.data == "user_back_from_serials")
+def user_back_from_serials(call):
+    """Seriallar ro'yxatidan asosiy menyuga qaytish"""
     bot.delete_message(call.message.chat.id, call.message.message_id)
+    from utils.admin_utils import user_panel
+    markup = user_panel()
     bot.send_message(
         call.message.chat.id,
-        "🆔 Film kodini kiriting:\n\t(🔍 Yoki kino/serial nomini: )"
+        "👤 *Foydalanuvchi Paneli*",
+        reply_markup=markup,
+        parse_mode="Markdown"
     )
-
-def search_serial_results(chat_id, search_results):
-    """Qidirish natijalarida seriallar"""
-    # Agar qidirish natijasida serial topilsa
-    markup = types.InlineKeyboardMarkup()
-    
-    for item in search_results:
-        if "seasons" in item:  # Bu serial
-            markup.add(types.InlineKeyboardButton(
-                f"🎞 {item['name']}",
-                callback_data=f"user_serial_{item['code']}"
-            ))
-    
-    if not markup.keyboard:
-        return None
-    
-    markup.add(types.InlineKeyboardButton("🔙", callback_data="user_back"))
-    return markup
