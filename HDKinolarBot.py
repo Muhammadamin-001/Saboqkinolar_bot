@@ -2635,14 +2635,14 @@ def show_statistics(msg):
     # Javob statistika xabari
     stats_text = (
         f"📊 *Statistika:*\n\n"
-        f"👤 Foydalanuvchilar soni: *{user_count}*\n"
+        f"👤 Foydalanuvchilar soni: *{user_count}*\n\n"
         f"🎬 Kinolar soni: *{movie_count}*\n"
         f"🎞️ Mavjud seriallar: *{serial_count}*\n"
     )
     markup = types.InlineKeyboardMarkup()
     # Super Admin uchun tayinlangan adminlar sonini ko‘rsatish
     if str(msg.from_user.id) == ADMIN_ID:  # Foydalanuvchi Super Admin bo'lsa
-        stats_text += f"🏷 Tayinlangan adminlar soni: *{admin_count}*\n\n"
+        stats_text += f"\n🏷 Tayinlangan adminlar soni: *{admin_count}*\n\n"
         if admins:
             stats_text += "📋 Adminlar ro'yxati:\n"
             for admin in admins:
