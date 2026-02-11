@@ -32,7 +32,7 @@ def user_panel():
     """User Panel - ✅ YANGILANGAN"""
     btn = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn.add("📂 Kinolar", "📥 Seriallar")
-    btn.add("🎁 Donat", "📊 Top 10")
+    btn.add("🎁 Donat", "♻️ Statistika")
     return btn
     #bot.send_message(chat_id, "♻️ Bot ishlayapti...", reply_markup=btn)
 
