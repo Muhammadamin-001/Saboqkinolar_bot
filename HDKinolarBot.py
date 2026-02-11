@@ -2414,8 +2414,19 @@ def movie_list(msg):
         bot.send_message(msg.chat.id, "📂 Bazada kino yo'q.")
         return
     
-    all_movies = list(movies.find({}, {"_id": 0}))
-    total = len(all_movies)
+    page = 1
+    limit = 5
+    skip = (page - 1) * limit
+    
+    all_movies = list(
+        movies.find({}, {"_id": 0})
+        .sort("_id", -1)
+        .skip(skip)
+        .limit(limit)
+    )
+
+    total = movies.count_documents({})
+
     
     markup = types.InlineKeyboardMarkup()
     if total > 5:
