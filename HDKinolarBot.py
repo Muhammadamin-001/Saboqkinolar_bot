@@ -2620,9 +2620,9 @@ def user_back_from_serials(call):
 @bot.message_handler(func=lambda msg: msg.text == "♻️ Statistika")
 def show_statistics(msg):
     # Faqat admin kirishi mumkin
-    if not (str(msg.from_user.id) == ADMIN_ID or is_admin(msg.from_user.id)):
-        bot.send_message(msg.chat.id, "❌ Siz admin emassiz.")
-        return
+    # if not (str(msg.from_user.id) == ADMIN_ID or is_admin(msg.from_user.id)):
+    #     bot.send_message(msg.chat.id, "❌ Siz admin emassiz.")
+    #     return
     
     # MongoDB Atlas bazasidan foydalanuvchilar va kinolar sonini olib kelish
     user_count = users_collection.count_documents({})  # Foydalanuvchilar soni
