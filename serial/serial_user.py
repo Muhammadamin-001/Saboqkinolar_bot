@@ -208,78 +208,117 @@ def show_episodes_for_user(call):
     )
 
 
-# =================== QISMNI YUBORISH - ✅ TUZATILGAN ===================
+# =================== QISMNI YUBORISH - ✅ TO'LIQ TUZATILGAN ===================
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("user_episode_"))
 def send_episode_to_user(call):
-    """✅ TUZATILGAN: Qismni foydalanuvchiga yuborish"""
+    """✅ TO'LIQ TUZATILGAN: Qismni foydalanuvchiga yuborish (season_name bilan ham)"""
     
-    # ✅ TUZATILGAN: Callback datani aniq parseytlash
-    parts = call.data.replace("user_episode_", "").split("_")
-    
-    # Oxirgi element episode_number (raqam)
-    episode_number = int(parts[-1])
-    # Ikkinchi oxirgi element season_id (raqam yoki name_...)
-    season_id = parts[-2]
-    # Qolgan qismi serial_code (bir yoki ko'p underscoreli bo'lishi mumkin)
-    serial_code = "_".join(parts[:-2])
+    try:
+        # ✅ TUZATILGAN: Callback datani to'g'ri parseytlash
+        callback_data = call.data.replace("user_episode_", "")
+        
+        # Oxirgi element episode_number (raqam)
+        last_underscore = callback_data.rfind("_")
+        episode_number = int(callback_data[last_underscore+1:])
+        
+        # Kalgan qismi serial_code_season_id
+        remaining = callback_data[:last_underscore]
+        
+        # Season_id topish (name_ bilan bo'lsa, name_dan keyingi hamma)
+        if "name_" in remaining:
+            # name_ pozitsiyasini top
+            name_index = remaining.find("name_")
+            serial_code = remaining[:name_index].rstrip("_")
+            season_id = remaining[name_index:]  # name_XXXXX
+        else:
+            # Raqam bo'lsa, oxirgi underscore oldingi raqam
+            parts = remaining.split("_")
+            season_id = parts[-1]  # oxirgi element season_number
+            serial_code = "_".join(parts[:-1])  # qolgan qismi serial_code
+
+        print(f"DEBUG: serial_code='{serial_code}', season_id='{season_id}', episode_number={episode_number}")
+
+    except Exception as e:
+        print(f"❌ Callback data parseytlash xatosi: {e}")
+        bot.answer_callback_query(call.id, f"❌ Xato: {str(e)}")
+        return
 
     serial = get_serial(serial_code)
     if not serial:
+        print(f"❌ Serial topilmadi: {serial_code}")
         bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
         return
+
+    print(f"✅ Serial topildi: {serial.get('name')}")
 
     # ✅ TUZATILGAN: Season ni aniq topish
     season = None
     season_display = ""
     
     if season_id.startswith("name_"):
-        season_name = season_id.replace("name_", "")
+        season_name = season_id.replace("name_", "", 1)  # Faqat birinchi name_ almashtir
+        print(f"DEBUG: Season name orqali qidirish: '{season_name}'")
+        
         for s in serial.get("seasons", []):
             if s.get("season_name") == season_name:
                 season = s
                 season_display = season_name
+                print(f"✅ Season topildi (name): {season_name}")
                 break
     else:
         try:
             season_num = int(season_id)
+            print(f"DEBUG: Season number orqali qidirish: {season_num}")
+            
             season = get_season(serial_code, season_num)
             if season:
                 season_display = f"{season_num}-fasl"
-        except (ValueError, TypeError):
+                print(f"✅ Season topildi (number): {season_num}")
+        except (ValueError, TypeError) as e:
+            print(f"❌ Season number parseytlash xatosi: {e}")
             season = None
 
     if not season:
+        print(f"❌ Fasl topilmadi: season_id={season_id}")
         bot.answer_callback_query(call.id, "❌ Fasl topilmadi!")
         return
 
+    print(f"✅ Season ma'lumotlari: {season}")
+
     # ✅ TUZATILGAN: Qismni aniq topish
     episode = None
-    for ep in season.get("episodes", []):
+    episodes_list = season.get("episodes", [])
+    print(f"DEBUG: Mavjud qismlar: {[ep.get('episode_number') for ep in episodes_list]}")
+    
+    for ep in episodes_list:
         if ep.get("episode_number") == episode_number:
             episode = ep
+            print(f"✅ Qism topildi: {episode_number}")
             break
 
     if not episode:
+        print(f"❌ Qism topilmadi: {episode_number}")
         bot.answer_callback_query(call.id, "❌ Qism topilmadi!")
         return
 
     file_id = episode.get("file_id")
     if file_id:
         try:
+            print(f"📹 Video yuborilmoqda: file_id={file_id[:20]}...")
             bot.send_video(
                 call.message.chat.id,
                 file_id,
-                caption=f"📺 {serial['name']} - {season_display}, Qism {episode_number}",
+                caption=f"📺 *{serial['name']}*\n🎬 *{season_display}*\n🎞️ *Qism {episode_number}*",
                 parse_mode="Markdown"
             )
-            bot.answer_callback_query(call.id, "✅ Video jo'natilmoqda...")
+            bot.answer_callback_query(call.id, "✅ Video jo'natildi!")
         except Exception as e:
             bot.answer_callback_query(call.id, f"❌ Xato: {str(e)[:50]}")
             print(f"❌ Video yuborish xatosi: {e}")
     else:
+        print("❌ File ID topilmadi")
         bot.answer_callback_query(call.id, "❌ Video topilmadi!")
-
 
 # =================== ORTGA TUGMALARI ===================
 
