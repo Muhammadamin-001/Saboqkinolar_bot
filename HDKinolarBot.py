@@ -343,14 +343,15 @@ def page_switch(call):
         btns = []
         
         if page > 1:
-            btns.append(types.InlineKeyboardButton("⬅️ orqaga", callback_data=f"page_{page-1}"))
+            btns.append(types.InlineKeyboardButton("⬅️ Old..", callback_data=f"page_{page-1}"))
         
-        if page > 1 and page < pages-2:
-            btns.append(types.InlineKeyboardButton("..+3", callback_data=f"page_{page+3}"))
-        if page > 3:
+        if page > 3 and page > pages//2:
             btns.append(types.InlineKeyboardButton("..-3", callback_data=f"page_{page-3}"))
+            
+        if page > 1 and page < pages-3 and page <= pages//2:
+            btns.append(types.InlineKeyboardButton("..+3", callback_data=f"page_{page+3}"))
         if page < pages:
-            btns.append(types.InlineKeyboardButton("➡️ Keyingi", callback_data=f"page_{page+1}"))
+            btns.append(types.InlineKeyboardButton("➡️ Key..", callback_data=f"page_{page+1}"))
         
         btns.append(types.InlineKeyboardButton("❌", callback_data="delete_msg_list"))
         
