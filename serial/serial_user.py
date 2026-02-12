@@ -99,30 +99,45 @@ def show_episodes_for_user(call):
     season_id = season_parts[3]  # season_number, name_xxxxx
 
     # Qismlar ro'yxatini yuborish va birinchi qismni show qilish
-    _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page)
+    _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page, is_next=True)
 
 
 @bot.callback_query_handler(func=lambda call: "_page_" in call.data and call.data.startswith("user_season_"))
 def on_pagination_click(call):
-    """✅ TUZATILGAN: Pagination tugmalariga bosilganda"""
+    """✅ TUZATILGAN: Pagination tugmalariga bosilganda - _prev/_next logikasi bilan"""
     
     chat_id = call.message.chat.id
+    callback_data = call.data
     
-    # ✅ TUZATILGAN: Pagination sahifasini aniq parseytlash
-    parts = call.data.split("_page_")
-    page = int(parts[1])
-    season_data = parts[0]  # user_season_CODE_SEASONID
+    # ✅ TUZATILGAN: _prev yoki _next ni tekshirish
+    is_next = callback_data.endswith("_next")  # True agar keyingi, False agar oldingi
+    
+    # Page raqamini olib, _prev/_next ni o'chirib tashlash
+    if is_next:
+        page_str = callback_data.split("_page_")[1].replace("_next", "")
+    else:
+        page_str = callback_data.split("_page_")[1].replace("_prev", "")
+    
+    page = int(page_str)
+    
+    season_data = callback_data.split("_page_")[0]  # user_season_CODE_SEASONID
     season_parts = season_data.split("_", 3)
     
     serial_code = season_parts[2]
     season_id = season_parts[3]
     
+    print(f"🔍 Pagination Debug: is_next={is_next}, page={page}, serial_code={serial_code}, season_id={season_id}")
+    
     # Qismlar ro'yxatini yuborish
-    _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page)
+    _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page, is_next=is_next)
 
 
-def _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page):
-    """Qismlar menyusini ko'rsatish va sahifaga mos qismni yuborish"""
+def _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page, is_next=True):
+    """Qismlar menyusini ko'rsatish va sahifaga mos qismni yuborish
+    
+    is_next=True bo'lsa birinchi qismni yuboradi
+    is_next=False bo'lsa oxirgi qismni yuboradi
+    """
     
     serial = get_serial(serial_code)
     if not serial:
@@ -195,21 +210,20 @@ def _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page
     if row:
         markup.row(*row)
 
-    # 🔁 PAGINATION - ✅ TUZATILGAN
-    # PAGINATION - Oldingi/Keyingi tugmasini o'zgartiramiz
+    # 🔁 PAGINATION - ✅ TUZATILGAN (_prev/_next bilan)
     nav = []
     if page > 0:
         nav.append(
             types.InlineKeyboardButton(
                 "⬅️ Oldingi",
-                callback_data=f"user_season_{serial_code}_{season_id}_page_{page-1}_prev"  # ✅ _prev qo'shdik
+                callback_data=f"user_season_{serial_code}_{season_id}_page_{page-1}_prev"
             )
         )
     if end < len(total):
         nav.append(
             types.InlineKeyboardButton(
                 "Keyingi ➡️",
-                callback_data=f"user_season_{serial_code}_{season_id}_page_{page+1}_next"  # ✅ _next qo'shdik
+                callback_data=f"user_season_{serial_code}_{season_id}_page_{page+1}_next"
             )
         )
 
@@ -248,9 +262,14 @@ def _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page
     
     # ✅ YANGI: Sahifaga mos qismni avtomatik yuborish
     if page_items:  # Agar qismlar mavjud bo'lsa
-        # Keyingi bosilsa birinchini, oldingi bosilsa oxirginisini yuborish
-        first_episode = page_items[0]
-        episode_to_send = first_episode.get("episode_number") if isinstance(first_episode, dict) else first_episode
+        if is_next:
+            # Keyingi bosilsa - birinchi qismni yuborish
+            episode_to_send = page_items[0].get("episode_number") if isinstance(page_items[0], dict) else page_items[0]
+        else:
+            # Oldingi bosilsa - oxirgi qismni yuborish
+            episode_to_send = page_items[-1].get("episode_number") if isinstance(page_items[-1], dict) else page_items[-1]
+        
+        print(f"📹 Video yuborish: episode_to_send={episode_to_send}, is_next={is_next}")
         
         # Eski videoni o'chirish
         if chat_id in last_episode_message_id:
@@ -286,6 +305,7 @@ def send_episode_message(chat_id, serial_code, season_id, episode_number, serial
             break
 
     if not episode:
+        print(f"❌ Episode topilmadi: {episode_number}")
         return
 
     file_id = episode.get("file_id")
@@ -308,9 +328,12 @@ def send_episode_message(chat_id, serial_code, season_id, episode_number, serial
             
             # ✅ YANGI: Message ID saqlash
             last_episode_message_id[chat_id] = msg.message_id
+            print(f"✅ Video yuborildi: qism {episode_number}, message_id={msg.message_id}")
             
         except Exception as e:
             print(f"❌ Video yuborish xatosi: {e}")
+    else:
+        print(f"❌ File ID topilmadi: {episode_number}")
 
 
 # Backward compatibility
