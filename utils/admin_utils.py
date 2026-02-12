@@ -25,7 +25,7 @@ def super_admin_panel(chat_id):
     btn.add("📢 Xabar yuborish", "🏷 Admin tayinlash")
     btn.add("🚫 Adminni olish", "📺 Kanal qo'shish")
     btn.add("❌ Kanal o'chirish", "📋 Kanallar ro'yxati")
-    btn.add("🔙 Ortga")
+    btn.add("💳 Add Card", "🔙 Ortga")
     bot.send_message(chat_id, "👑 Super Admin Paneli", reply_markup=btn)
 
 def user_panel():

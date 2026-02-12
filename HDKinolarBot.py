@@ -31,6 +31,10 @@ from serial.serial_user import show_serial_for_user
 from serial.serial_db import get_all_serials, get_serial
 from movies.movie_handler import send_movie_info
 
+# Mavjud importlar keyin qo'shish:
+
+from donate.donate_handlers import *
+from donate.donate_user import *
 
 app = Flask(__name__)
 
@@ -506,6 +510,20 @@ def upload_back(call):
         parse_mode="Markdown",
         reply_markup=markup
     )
+
+
+
+
+# "💳 Add Card" callback handler uchun
+# (mavjud kodga qo'shish - jami 2 qator)
+
+@bot.callback_query_handler(func=lambda call: call.data == "admin_back_to_panel")
+def admin_back_to_panel_callback(call):
+    """Super Admin paneliga qaytish"""
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    super_admin_panel(call.message.chat.id)
+
+
 
 
 

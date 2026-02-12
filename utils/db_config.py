@@ -30,3 +30,11 @@ album_sending = {}
 search_cache = {}
 user_pages = {}
 movie_pages = {}
+
+# Mavjud koddan keyin qo'shish:
+
+# ================ DONAT KARTASI UCHUN ================
+cards_collection = db["cards"]  # Karta ma'lumotlari
+
+# Indeks yaratish (tez qidirish uchun)
+cards_collection.create_index("type")
