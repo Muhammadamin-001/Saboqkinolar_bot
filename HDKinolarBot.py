@@ -340,27 +340,23 @@ def page_switch(call):
         
         markup = types.InlineKeyboardMarkup()
         btns = []
+        pg = page[:]
         
         # ✅ 1-TUGMA: Oldingi (har doim agar 1-sahifa emas bo'lsa)
         if page > 1:
-            btns.append(types.InlineKeyboardButton("⬅️ Oldingi", callback_data=f"page_{page-1}"))
+            btns.append(types.InlineKeyboardButton("⬅️ Old..", callback_data=f"page_{page-1}"))
             # ✅ OLDINGI bosilsa, o'rtada -3 chiqadi
-            
+        if page > 3 and pg > page:
             btns.append(types.InlineKeyboardButton("..−3", callback_data=f"page_{page-3}"))
-        else:
-            # ✅ Agar 1-sahifa bo'lsa, bo'sh joy
-            btns.append(types.InlineKeyboardButton("", callback_data="space"))
-            btns.append(types.InlineKeyboardButton("", callback_data="space"))
         
         # ✅ 3-TUGMA: Keyingi (har doim agar oxirgi sahifa emas bo'lsa)
         if page < pages:
             # ✅ KEYINGI bosilsa, o'rtada +3 chiqadi
+            btns.append(types.InlineKeyboardButton("➡️ Key..", callback_data=f"page_{page+1}"))
+            
+        if page <= pages-3 and pg < page:
             btns.append(types.InlineKeyboardButton("+3...", callback_data=f"page_{page+3}"))
-            btns.append(types.InlineKeyboardButton("Keyingi ➡️", callback_data=f"page_{page+1}"))
-        else:
-            # ✅ Agar oxirgi sahifa bo'lsa, bo'sh joy
-            btns.append(types.InlineKeyboardButton("", callback_data="space"))
-            btns.append(types.InlineKeyboardButton("", callback_data="space"))
+        
         
         # ✅ O'chirish tugmasi
         btns.append(types.InlineKeyboardButton("❌", callback_data="delete_msg_list"))
