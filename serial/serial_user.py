@@ -196,19 +196,20 @@ def _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page
         markup.row(*row)
 
     # 🔁 PAGINATION - ✅ TUZATILGAN
+    # PAGINATION - Oldingi/Keyingi tugmasini o'zgartiramiz
     nav = []
     if page > 0:
         nav.append(
             types.InlineKeyboardButton(
                 "⬅️ Oldingi",
-                callback_data=f"user_season_{serial_code}_{season_id}_page_{page-1}"
+                callback_data=f"user_season_{serial_code}_{season_id}_page_{page-1}_prev"  # ✅ _prev qo'shdik
             )
         )
     if end < len(total):
         nav.append(
             types.InlineKeyboardButton(
                 "Keyingi ➡️",
-                callback_data=f"user_season_{serial_code}_{season_id}_page_{page+1}"
+                callback_data=f"user_season_{serial_code}_{season_id}_page_{page+1}_next"  # ✅ _next qo'shdik
             )
         )
 
