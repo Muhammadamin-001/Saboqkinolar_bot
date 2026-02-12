@@ -345,7 +345,7 @@ def page_switch(call):
         if page > 1:
             btns.append(types.InlineKeyboardButton("⬅️ orqaga", callback_data=f"page_{page-1}"))
         
-        if page > 1 and page < pages-3:
+        if page > 1 and page < pages-2:
             btns.append(types.InlineKeyboardButton("..+3", callback_data=f"page_{page+3}"))
         if page > 3:
             btns.append(types.InlineKeyboardButton("..-3", callback_data=f"page_{page-3}"))
