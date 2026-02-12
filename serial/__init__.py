@@ -33,7 +33,7 @@ from .serial_states import (
 from .serial_user import (
     show_serial_for_user,
     show_episodes_for_user,
-    send_episode_to_user,
+    send_episode_message
 )
 
 from utils.admin_utils import (
@@ -72,7 +72,7 @@ __all__ = [
     # serial_user.py
     'show_serial_for_user',
     'show_episodes_for_user',
-    'send_episode_to_user',
+    'send_episode_message',
     
     # config.settings
     'ADMIN_ID',
