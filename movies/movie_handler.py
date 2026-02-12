@@ -191,7 +191,9 @@ def send_movie_info(chat_id, kino_kodi):
             chat_id,
             file_id,
             caption=caption_text,
-            reply_markup=markup
+            reply_markup=markup,
+            protect_content=True,
+            supports_streaming=True
         )
     else:
         bot.send_message(chat_id, "❌ Bunday kod bo'yicha kino topilmadi.")

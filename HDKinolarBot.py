@@ -335,7 +335,7 @@ def page_switch(call):
             code = m['code']
             text += f"{c}.   {m['name']}\n"
             text += f"🆔 Kod: `{code}`\n"
-            text += f"[▶️ Kinoni yuklash](https://t.me/Saboq_kinolar_bot?start={code})\n"
+            text += f"[▶️ Yuklab olish](https://t.me/Saboq_kinolar_bot?start={code})\n"
             text += f"*{'─' * 10}*\n"
             c += 1
         
@@ -356,7 +356,7 @@ def page_switch(call):
         if btns:
             markup.row(*btns)
         
-        bot.  edit_message_text(
+        bot.edit_message_text(
             text,
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -2876,7 +2876,7 @@ def universal_handler(msg):
         end = 5
         page_items = filtered_items[boshlash:end]
         
-        text_result = f"🎬 **Qidirush natijalari:   '{text}'**\n\n"
+        text_result = f"🎬 **Qidiruv natijalari:   '{text}'**\n\n"
         text_result += f"📊 Topildi: {total} ta | Sahifa: {page}/{pages}\n\n"
         
         c = 1

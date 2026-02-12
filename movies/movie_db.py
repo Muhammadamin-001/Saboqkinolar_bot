@@ -16,8 +16,8 @@ def create_movie(code, name, file_id, genre, formati):
                 "name": name,
                 "genre":  genre,
                 "formati":  formati,
-                "url": "@DubHDkinolar",
-                "urlbot": "@DubKinoBot"
+                "url": "@Saboq_kinolar",
+                "urlbot": "@Saboq_kinolar_bot"
             }},
             upsert=True
         )
