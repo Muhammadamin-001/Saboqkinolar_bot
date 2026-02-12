@@ -11,6 +11,9 @@ from utils.admin_utils import is_admin, user_panel, admin_panel
 from config.settings import ADMIN_ID
 kanal_link = "https://t.me/Saboq_kinolar"
 
+# Global o'zgaruvchi - oxirgi yuborilan videoning message ID
+last_episode_message_id = {}
+
 # =================== FOYDALANUVCHI UCHUN SERIAL KO'RISH ===================
 
 def show_serial_for_user(chat_id, serial_code):
@@ -86,7 +89,9 @@ def show_serial_for_user(chat_id, serial_code):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("user_season_"))
 def show_episodes_for_user(call):
-    """✅ TUZATILGAN: season_number yoki season_name orqali qidirish + pagination"""
+    """✅ TUZATILGAN: season_number yoki season_name orqali qidirish + pagination + birinchi qismni yuborish"""
+    
+    chat_id = call.message.chat.id
     
     # ✅ TUZATILGAN: Pagination sahifasini aniq parseytlash
     if "_page_" in call.data:
@@ -106,7 +111,7 @@ def show_episodes_for_user(call):
         bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
         return
 
-    # ✅ TUZATILGAN: Season ID ni aniq parseytlash
+    # ✅ TUZATILGAN: Season ni aniq topish
     season = None
     season_display = ""
     
@@ -215,19 +220,82 @@ def show_episodes_for_user(call):
         f"Qismlarni tanlang:"
     )
 
-    bot.send_message(
+    menu_msg = bot.send_message(
         call.message.chat.id,
         caption,
         reply_markup=markup,
         parse_mode="Markdown"
     )
+    
+    # ✅ YANGI: Birinchi qismni avtomatik yuborish
+    if total:  # Agar qismlar mavjud bo'lsa
+        first_episode = total[0]
+        first_episode_number = first_episode.get("episode_number") if isinstance(first_episode, dict) else first_episode
+        
+        # Eski videoni o'chirish
+        if chat_id in last_episode_message_id:
+            try:
+                bot.delete_message(chat_id, last_episode_message_id[chat_id])
+            except:
+                pass
+        
+        # Birinchi qismni yuborish
+        send_episode_message(
+            chat_id=chat_id,
+            serial_code=serial_code,
+            season_id=season_id,
+            episode_number=first_episode_number,
+            serial=serial,
+            season_display=display,
+            season=season
+        )
 
 
 # =================== QISMNI YUBORISH - ✅ TO'LIQ TUZATILGAN ===================
 
+def send_episode_message(chat_id, serial_code, season_id, episode_number, serial, season_display, season):
+    """Qismni videoni bilan yuborish va message ID saqlash"""
+    
+    # ✅ TUZATILGAN: Qismni topish
+    episode = None
+    episodes_list = season.get("episodes", [])
+    
+    for ep in episodes_list:
+        if ep.get("episode_number") == episode_number:
+            episode = ep
+            break
+
+    if not episode:
+        return
+
+    file_id = episode.get("file_id")
+    if file_id:
+        try:
+            # Eski videoni o'chirish
+            if chat_id in last_episode_message_id:
+                try:
+                    bot.delete_message(chat_id, last_episode_message_id[chat_id])
+                except:
+                    pass
+            
+            # Yangi videoni yuborish
+            msg = bot.send_video(
+                chat_id,
+                file_id,
+                caption=f"📺 *{serial['name']}*\n🎬 *{season_display}*\n🎞️ *Qism {episode_number}*",
+                parse_mode="Markdown"
+            )
+            
+            # ✅ YANGI: Message ID saqlash
+            last_episode_message_id[chat_id] = msg.message_id
+            
+        except Exception as e:
+            print(f"❌ Video yuborish xatosi: {e}")
+
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("user_episode_"))
-def send_episode_to_user(call):
-    """✅ TO'LIQ TUZATILGAN: Qismni foydalanuvchiga yuborish (season_name bilan ham)"""
+def on_episode_button_click(call):
+    """Qism tugmasiga bosilganda"""
     
     try:
         # ✅ TUZATILGAN: Callback datani to'g'ri parseytlash
@@ -301,39 +369,30 @@ def send_episode_to_user(call):
 
     print(f"✅ Season ma'lumotlari: {season}")
 
-    # ✅ TUZATILGAN: Qismni aniq topish
-    episode = None
-    episodes_list = season.get("episodes", [])
-    print(f"DEBUG: Mavjud qismlar: {[ep.get('episode_number') for ep in episodes_list]}")
+    # ✅ Qismni yuborish
+    chat_id = call.message.chat.id
+    send_episode_message(
+        chat_id=chat_id,
+        serial_code=serial_code,
+        season_id=season_id,
+        episode_number=episode_number,
+        serial=serial,
+        season_display=season_display,
+        season=season
+    )
     
-    for ep in episodes_list:
-        if ep.get("episode_number") == episode_number:
-            episode = ep
-            print(f"✅ Qism topildi: {episode_number}")
-            break
+    bot.answer_callback_query(call.id, f"✅ Qism {episode_number}")
 
-    if not episode:
-        print(f"❌ Qism topilmadi: {episode_number}")
-        bot.answer_callback_query(call.id, "❌ Qism topilmadi!")
-        return
 
-    file_id = episode.get("file_id")
-    if file_id:
-        try:
-            print(f"📹 Video yuborilmoqda: file_id={file_id[:20]}...")
-            bot.send_video(
-                call.message.chat.id,
-                file_id,
-                caption=f"📺 *{serial['name']}*\n🎬 *{season_display}*\n🎞️ *Qism {episode_number}*",
-                parse_mode="Markdown"
-            )
-            bot.answer_callback_query(call.id, "✅ Video jo'natildi!")
-        except Exception as e:
-            bot.answer_callback_query(call.id, f"❌ Xato: {str(e)[:50]}")
-            print(f"❌ Video yuborish xatosi: {e}")
-    else:
-        print("❌ File ID topilmadi")
-        bot.answer_callback_query(call.id, "❌ Video topilmadi!")
+# =================== PAGINATION TUGMALARI - ✅ TUZATILGAN ===================
+
+@bot.callback_query_handler(func=lambda call: "_page_" in call.data and call.data.startswith("user_season_"))
+def on_pagination_click(call):
+    """Pagination tugmalariga bosilganda - avvalgi funksiya qayta chaqiriladi"""
+    
+    # Avvalgi funksiya qayta chaqiriladi, lekin biz qismni avtomatik yuboramiz
+    show_episodes_for_user(call)
+
 
 # =================== ORTGA TUGMALARI ===================
 
@@ -342,6 +401,15 @@ def user_back_to_home(call):
     """Seriallardan asosiy menyuga qaytish"""
     bot.delete_message(call.message.chat.id, call.message.message_id)
     
+    # Eski videoni o'chirish
+    chat_id = call.message.chat.id
+    if chat_id in last_episode_message_id:
+        try:
+            bot.delete_message(chat_id, last_episode_message_id[chat_id])
+        except:
+            pass
+        del last_episode_message_id[chat_id]
+    
     markup = user_panel()
     bot.send_message(
         call.message.chat.id,
@@ -349,10 +417,20 @@ def user_back_to_home(call):
         reply_markup=markup,
         parse_mode="Markdown"
     )
+
 @bot.callback_query_handler(func=lambda call: call.data == "admin_back")
 def admin_back_to_home(call):
     """Seriallardan asosiy menyuga qaytish"""
     bot.delete_message(call.message.chat.id, call.message.message_id)
+    
+    # Eski videoni o'chirish
+    chat_id = call.message.chat.id
+    if chat_id in last_episode_message_id:
+        try:
+            bot.delete_message(chat_id, last_episode_message_id[chat_id])
+        except:
+            pass
+        del last_episode_message_id[chat_id]
     
     markup = admin_panel()
     bot.answer_callback_query(
@@ -367,6 +445,16 @@ def user_view_serial(call):
     """✅ TUZATILGAN: Foydalanuvchi serialni ko'rish"""
     serial_code = call.data.replace("user_view_serial_", "")
     
+    chat_id = call.message.chat.id
+    
+    # Eski videoni o'chirish
+    if chat_id in last_episode_message_id:
+        try:
+            bot.delete_message(chat_id, last_episode_message_id[chat_id])
+        except:
+            pass
+        del last_episode_message_id[chat_id]
+    
     if not serial_code:  # ✅ Bo'sh code tekshiruvi
         bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
         return
@@ -379,6 +467,16 @@ def user_view_serial(call):
 def user_back_from_serials(call):
     """Seriallar ro'yxatidan asosiy menyuga qaytish"""
     bot.delete_message(call.message.chat.id, call.message.message_id)
+    
+    # Eski videoni o'chirish
+    chat_id = call.message.chat.id
+    if chat_id in last_episode_message_id:
+        try:
+            bot.delete_message(chat_id, last_episode_message_id[chat_id])
+        except:
+            pass
+        del last_episode_message_id[chat_id]
+    
     from utils.admin_utils import user_panel
     markup = user_panel()
     bot.send_message(
@@ -386,6 +484,4 @@ def user_back_from_serials(call):
         "👤 *Asosiy Panel*",
         reply_markup=markup,
         parse_mode="Markdown"
-    
-    
     )
