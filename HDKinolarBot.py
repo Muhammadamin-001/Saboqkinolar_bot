@@ -308,7 +308,7 @@ def delete_movie_confirm(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("page_"))
 def page_switch(call):
-    """Film kodlari sahifalarini o'tish"""
+    """Film kodlari sahifalarini o'tish - ✅ ..-3 VA ..+3 ALMASHINADI"""
     try:
         page = int(call.data.split("_")[1])
         
@@ -326,7 +326,6 @@ def page_switch(call):
             .limit(limit)
         )
         
-        
         text = "*🎬 Kinolar ro'yxati*\n\n"
         text += f"📊 Topildi: {total} ta kino | Sahifa: {page}/{pages}\n\n"
         
@@ -342,17 +341,28 @@ def page_switch(call):
         markup = types.InlineKeyboardMarkup()
         btns = []
         
+        # ✅ 1-TUGMA: Oldingi (har doim agar 1-sahifa emas bo'lsa)
         if page > 1:
-            btns.append(types.InlineKeyboardButton("⬅️ Old..", callback_data=f"page_{page-1}"))
-        
-        if page > 3 and page > pages//2:
-            btns.append(types.InlineKeyboardButton("..-3", callback_data=f"page_{page-3}"))
+            btns.append(types.InlineKeyboardButton("⬅️ Oldingi", callback_data=f"page_{page-1}"))
+            # ✅ OLDINGI bosilsa, o'rtada -3 chiqadi
             
-        if page > 1 and page < pages-3 and page <= pages//2:
-            btns.append(types.InlineKeyboardButton("..+3", callback_data=f"page_{page+3}"))
-        if page < pages:
-            btns.append(types.InlineKeyboardButton("➡️ Key..", callback_data=f"page_{page+1}"))
+            btns.append(types.InlineKeyboardButton("..−3", callback_data=f"page_{page-3}"))
+        else:
+            # ✅ Agar 1-sahifa bo'lsa, bo'sh joy
+            btns.append(types.InlineKeyboardButton("", callback_data="space"))
+            btns.append(types.InlineKeyboardButton("", callback_data="space"))
         
+        # ✅ 3-TUGMA: Keyingi (har doim agar oxirgi sahifa emas bo'lsa)
+        if page < pages:
+            # ✅ KEYINGI bosilsa, o'rtada +3 chiqadi
+            btns.append(types.InlineKeyboardButton("+3...", callback_data=f"page_{page+3}"))
+            btns.append(types.InlineKeyboardButton("Keyingi ➡️", callback_data=f"page_{page+1}"))
+        else:
+            # ✅ Agar oxirgi sahifa bo'lsa, bo'sh joy
+            btns.append(types.InlineKeyboardButton("", callback_data="space"))
+            btns.append(types.InlineKeyboardButton("", callback_data="space"))
+        
+        # ✅ O'chirish tugmasi
         btns.append(types.InlineKeyboardButton("❌", callback_data="delete_msg_list"))
         
         if btns:
@@ -368,7 +378,8 @@ def page_switch(call):
     except Exception as e:
         print(f"Xatolik: {e}")
         bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi.")
-
+        
+        
 # =================== CALLBACK HANDLERS - QIDIRUSH SAHIFALAR ===================
 
 @bot.callback_query_handler(func=lambda c: c.data.startswith("search_"))
