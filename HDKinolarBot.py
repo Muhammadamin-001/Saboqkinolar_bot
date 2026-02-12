@@ -307,19 +307,26 @@ def page_switch(call):
     """Film kodlari sahifalarini o'tish"""
     try:
         page = int(call.data.split("_")[1])
-        all_movies = list(movies.find({}, {"_id": 0}))
-        total = len(all_movies)
-        per_page = 5
-        pages = (total - 1) // per_page + 1
         
-        boshlash = (page - 1) * per_page
-        end = boshlash + per_page
-        page_movies = all_movies[boshlash:end]
+        limit = 5
+        skip = (page - 1) * limit
+
+        total = movies.count_documents({})
+        pages = (total - 1) // limit + 1
+
+        # 🔥 Faqat kerakli sahifa kinolarini olish
+        page_movies = list(
+            movies.find({}, {"_id": 0})
+            .sort("_id", -1)
+            .skip(skip)
+            .limit(limit)
+        )
+        
         
         text = "*🎬 Kinolar ro'yxati*\n\n"
         text += f"📊 Topildi: {total} ta kino | Sahifa: {page}/{pages}\n\n"
         
-        c = boshlash + 1
+        c = skip + 1
         for m in page_movies:
             code = m['code']
             text += f"{c}.   {m['name']}\n"
