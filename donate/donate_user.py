@@ -8,11 +8,9 @@ from utils.db_config import bot, cards_collection
 
 # =================== USER DONAT TUGMASI ===================
 
-@bot.callback_query_handler(func=lambda call: call.data == "🎁 Donat")
-def user_donate_menu(call):
+@bot.message_handler(func=lambda msg: msg.text == "🎁 Donat")
+def user_donate_menu(msg):
     """Foydalanuvchi donat kartasini ko'rish"""
-    
-    bot.delete_message(call.message.chat.id, call.message.message_id)
     
     # Bazadan barcha kartalarni olish
     cards = list(cards_collection.find({}, {"_id": 0, "type": 1, "number": 1, "owner": 1}))
@@ -21,7 +19,7 @@ def user_donate_menu(call):
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("🔙 Ortga", callback_data="user_back"))
         bot.send_message(
-            call.message.chat.id,
+            msg.chat.id,
             "❌ *Hozir donate kartasi yo'q*",
             reply_markup=markup,
             parse_mode="Markdown"
@@ -42,7 +40,7 @@ def user_donate_menu(call):
     markup.add(types.InlineKeyboardButton("❌", callback_data="user_donate_delete"))
     
     bot.send_message(
-        call.message.chat.id,
+        msg.chat.id,
         "💰 *Donat uchun karta tanlang:*",
         reply_markup=markup,
         parse_mode="Markdown"
