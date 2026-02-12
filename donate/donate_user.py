@@ -8,7 +8,7 @@ from utils.db_config import bot, cards_collection
 
 # =================== USER DONAT TUGMASI ===================
 
-@bot.callback_query_handler(func=lambda call: call.data == "user_donate")
+@bot.callback_query_handler(func=lambda call: call.data == "🎁 Donat")
 def user_donate_menu(call):
     """Foydalanuvchi donat kartasini ko'rish"""
     
