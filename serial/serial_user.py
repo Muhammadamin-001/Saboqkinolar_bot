@@ -53,8 +53,6 @@ def show_serial_for_user(chat_id, serial_code):
     else:
         user_id = chat_id
         target_chat_id = chat_id
-        
-    user_id=chat_id.from_user.id
     
     if (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):        
         markup.add(
@@ -76,7 +74,6 @@ def show_serial_for_user(chat_id, serial_code):
     )
 
     bot.send_photo(
-        chat_id,
         target_chat_id,
         serial["image"],
         caption=caption,
