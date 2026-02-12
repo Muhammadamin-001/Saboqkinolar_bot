@@ -2273,7 +2273,7 @@ def delete_episode_execute(call):
     )
 
     if result.matched_count == 0:
-        print(f"❌ Update xatosi: matched_count=0")
+        print("❌ Update xatosi: matched_count=0")
         bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi!")
         return
 
@@ -2584,8 +2584,10 @@ def show_user_serials(msg):
             f"🎞 {serial['name']}",
             callback_data=f"user_view_serial_{serial['code']}"
         ))
-    
-    markup.add(types.InlineKeyboardButton("🔙 Ortga", callback_data="user_back_from_serials"))
+    if (str(msg.from_user.id) == ADMIN_ID or is_admin(msg.from_user.id)):
+        markup.add(types.InlineKeyboardButton("🔙 Ortga", callback_data="admin_back_from_serials"))
+    else:
+        markup.add(types.InlineKeyboardButton("🔙 Ortga", callback_data="user_back_from_serials"))
     
     bot.send_message(
         msg.chat.id,
@@ -2612,13 +2614,17 @@ def user_view_serial_handler(call):
     show_serial_for_user(call.message.chat.id, serial_code)
 
 
+@bot.callback_query_handler(func=lambda call: call.data == "admin_back_from_serials")
+def admin_back_from_serials(call):
+    """Seriallardan ortga"""
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    admin_panel(call.message.chat.id)
+
 @bot.callback_query_handler(func=lambda call: call.data == "user_back_from_serials")
 def user_back_from_serials(call):
     """Seriallardan ortga"""
     bot.delete_message(call.message.chat.id, call.message.message_id)
-    
-    if not (str(call.from_user.id) == ADMIN_ID or is_admin(call.from_user.id)):
-        user_panel(call.message.chat.id)
+    user_panel(call.message.chat.id)
 
 
 

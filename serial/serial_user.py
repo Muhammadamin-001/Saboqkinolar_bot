@@ -7,7 +7,8 @@ Foydalanuvchi uchun serialni ko'rish, qismlar, playback
 from telebot import types
 from utils.db_config import bot
 from .serial_db import get_serial, get_season, get_episode
-
+from utils.admin_utils import is_admin, user_panel, admin_panel
+from config.settings import ADMIN_ID
 kanal_link = "https://t.me/Saboq_kinolar"
 
 # =================== FOYDALANUVCHI UCHUN SERIAL KO'RISH ===================
@@ -45,11 +46,19 @@ def show_serial_for_user(chat_id, serial_code):
                     callback_data=f"user_season_{serial_code}_{callback_id}"
                 )
             )
+    user_id=chat_id.from_user.id
+    
+    if (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):        
+        markup.add(
+            types.InlineKeyboardButton("🎬 Kanalimiz", url=kanal_link),
+            types.InlineKeyboardButton("🔙", callback_data="admin_back")
+        )
 
-    markup.add(
-        types.InlineKeyboardButton("🎬 Kanalimiz", url=kanal_link),
-        types.InlineKeyboardButton("🔙", callback_data="user_back")
-    )
+    else:
+        markup.add(
+            types.InlineKeyboardButton("🎬 Kanalimiz", url=kanal_link),
+            types.InlineKeyboardButton("🔙", callback_data="user_back")
+        )
 
     caption = (
         f"🎞 *{serial['name']}*\n\n"
@@ -326,15 +335,26 @@ def send_episode_to_user(call):
 def user_back_to_home(call):
     """Seriallardan asosiy menyuga qaytish"""
     bot.delete_message(call.message.chat.id, call.message.message_id)
-    from utils.admin_utils import user_panel
+    
     markup = user_panel()
     bot.send_message(
         call.message.chat.id,
-        "👤 *Foydalanuvchi Paneli*",
+        "👤 *Asosiy Panel*",
         reply_markup=markup,
         parse_mode="Markdown"
     )
-
+@bot.callback_query_handler(func=lambda call: call.data == "admin_back")
+def admin_back_to_home(call):
+    """Seriallardan asosiy menyuga qaytish"""
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    
+    markup = admin_panel()
+    bot.answer_callback_query(
+        call.id,
+        "👤 *Asosiy Panel*",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("user_view_serial_"))
 def user_view_serial(call):
@@ -357,7 +377,7 @@ def user_back_from_serials(call):
     markup = user_panel()
     bot.send_message(
         call.message.chat.id,
-        "👤 *Foydalanuvchi Paneli*",
+        "👤 *Asosiy Panel*",
         reply_markup=markup,
         parse_mode="Markdown"
     )
