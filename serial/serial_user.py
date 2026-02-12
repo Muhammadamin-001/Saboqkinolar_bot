@@ -323,7 +323,9 @@ def send_episode_message(chat_id, serial_code, season_id, episode_number, serial
                 chat_id,
                 file_id,
                 caption=f"📺 *{serial['name']}*\n🎬 *{season_display}*\n🎞️ *Qism {episode_number}*",
-                parse_mode="Markdown"
+                parse_mode="Markdown",
+                protect_content=True,
+                supports_streaming=True
             )
             
             # ✅ YANGI: Message ID saqlash
