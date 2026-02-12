@@ -87,25 +87,43 @@ def show_serial_for_user(chat_id, serial_code):
 
 # =================== QISMLAR XABARI - ✅ TUZATILGAN ===================
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("user_season_"))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("user_season_") and "_page_" not in call.data)
 def show_episodes_for_user(call):
     """✅ TUZATILGAN: season_number yoki season_name orqali qidirish + pagination + birinchi qismni yuborish"""
     
     chat_id = call.message.chat.id
-    
-    # ✅ TUZATILGAN: Pagination sahifasini aniq parseytlash
-    if "_page_" in call.data:
-        parts = call.data.split("_page_")
-        page = int(parts[1])
-        season_data = parts[0]  # user_season_CODE_SEASONID
-        season_parts = season_data.split("_", 3)
-    else:
-        page = 0
-        season_parts = call.data.split("_", 3)
+    page = 0  # Birinchi sahifa
+    season_parts = call.data.split("_", 3)
     
     serial_code = season_parts[2]
     season_id = season_parts[3]  # season_number, name_xxxxx
 
+    # Qismlar ro'yxatini yuborish va birinchi qismni show qilish
+    _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page)
+
+
+@bot.callback_query_handler(func=lambda call: "_page_" in call.data and call.data.startswith("user_season_"))
+def on_pagination_click(call):
+    """✅ TUZATILGAN: Pagination tugmalariga bosilganda"""
+    
+    chat_id = call.message.chat.id
+    
+    # ✅ TUZATILGAN: Pagination sahifasini aniq parseytlash
+    parts = call.data.split("_page_")
+    page = int(parts[1])
+    season_data = parts[0]  # user_season_CODE_SEASONID
+    season_parts = season_data.split("_", 3)
+    
+    serial_code = season_parts[2]
+    season_id = season_parts[3]
+    
+    # Qismlar ro'yxatini yuborish
+    _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page)
+
+
+def _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page):
+    """Qismlar menyusini ko'rsatish va sahifaga mos qismni yuborish"""
+    
     serial = get_serial(serial_code)
     if not serial:
         bot.answer_callback_query(call.id, "❌ Serial topilmadi!")
@@ -220,17 +238,18 @@ def show_episodes_for_user(call):
         f"Qismlarni tanlang:"
     )
 
-    menu_msg = bot.send_message(
+    bot.send_message(
         call.message.chat.id,
         caption,
         reply_markup=markup,
         parse_mode="Markdown"
     )
     
-    # ✅ YANGI: Birinchi qismni avtomatik yuborish
-    if total:  # Agar qismlar mavjud bo'lsa
-        first_episode = total[0]
-        first_episode_number = first_episode.get("episode_number") if isinstance(first_episode, dict) else first_episode
+    # ✅ YANGI: Sahifaga mos qismni avtomatik yuborish
+    if page_items:  # Agar qismlar mavjud bo'lsa
+        # Keyingi bosilsa birinchini, oldingi bosilsa oxirginisini yuborish
+        first_episode = page_items[0]
+        episode_to_send = first_episode.get("episode_number") if isinstance(first_episode, dict) else first_episode
         
         # Eski videoni o'chirish
         if chat_id in last_episode_message_id:
@@ -239,12 +258,12 @@ def show_episodes_for_user(call):
             except:
                 pass
         
-        # Birinchi qismni yuborish
+        # Qismni yuborish
         send_episode_message(
             chat_id=chat_id,
             serial_code=serial_code,
             season_id=season_id,
-            episode_number=first_episode_number,
+            episode_number=episode_to_send,
             serial=serial,
             season_display=display,
             season=season
@@ -291,6 +310,12 @@ def send_episode_message(chat_id, serial_code, season_id, episode_number, serial
             
         except Exception as e:
             print(f"❌ Video yuborish xatosi: {e}")
+
+
+# Backward compatibility
+def send_episode_to_user(call):
+    """Eski funksiya nomi uchun alias"""
+    on_episode_button_click(call)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("user_episode_"))
@@ -382,16 +407,6 @@ def on_episode_button_click(call):
     )
     
     bot.answer_callback_query(call.id, f"✅ Qism {episode_number}")
-
-
-# =================== PAGINATION TUGMALARI - ✅ TUZATILGAN ===================
-
-@bot.callback_query_handler(func=lambda call: "_page_" in call.data and call.data.startswith("user_season_"))
-def on_pagination_click(call):
-    """Pagination tugmalariga bosilganda - avvalgi funksiya qayta chaqiriladi"""
-    
-    # Avvalgi funksiya qayta chaqiriladi, lekin biz qismni avtomatik yuboramiz
-    show_episodes_for_user(call)
 
 
 # =================== ORTGA TUGMALARI ===================
