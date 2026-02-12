@@ -46,6 +46,14 @@ def show_serial_for_user(chat_id, serial_code):
                     callback_data=f"user_season_{serial_code}_{callback_id}"
                 )
             )
+    
+    if hasattr(chat_id, "from_user"):
+        user_id = chat_id.from_user.id
+        target_chat_id = chat_id.chat.id
+    else:
+        user_id = chat_id
+        target_chat_id = chat_id
+        
     user_id=chat_id.from_user.id
     
     if (str(user_id) == str(ADMIN_ID) or is_admin(user_id)):        
@@ -69,6 +77,7 @@ def show_serial_for_user(chat_id, serial_code):
 
     bot.send_photo(
         chat_id,
+        target_chat_id,
         serial["image"],
         caption=caption,
         parse_mode="Markdown",
@@ -380,4 +389,6 @@ def user_back_from_serials(call):
         "👤 *Asosiy Panel*",
         reply_markup=markup,
         parse_mode="Markdown"
+    
+    
     )
