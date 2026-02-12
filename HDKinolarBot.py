@@ -306,11 +306,14 @@ def delete_movie_confirm(call):
 
 # =================== PAGE HANDLER - ✅ QOSHILDI ===================
 
+# =================== PAGE HANDLER - ✅ TO'G'RILANGAN ===================
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("page_"))
 def page_switch(call):
     """Film kodlari sahifalarini o'tish - ✅ OLDINGI PAGE SOLISHTIRISH"""
     try:
         page = int(call.data.split("_")[1])
+        user_id = str(call.from_user.id)
         
         limit = 5
         skip = (page - 1) * limit
@@ -341,9 +344,18 @@ def page_switch(call):
         markup = types.InlineKeyboardMarkup()
         btns = []
         
-        # ✅ OLDINGI PAGE QO'SHISH (STATE'DAN YOKI GLOBAL O'ZGARUVCHIDAN)
-        # Agar STATE'DA MAVJUD BO'LSA:
-        previous_page = state.get(str(call.from_user.id), {}).get("last_page", page)
+        # ✅ OLDINGI PAGE QIYMATINI OLISH
+        # State'da dictionary bo'lishini tekshirish
+        if user_id not in state:
+            state[user_id] = {}
+        
+        # Agar state user_id uchun list bo'lsa, dict ga o'zgartirish
+        if isinstance(state[user_id], list):
+            state[user_id] = {}
+        
+        previous_page = state[user_id].get("last_page", page)
+        
+        print(f"DEBUG: page={page}, previous_page={previous_page}, user_id={user_id}")  # Debug
         
         # ✅ 1-TUGMA: Oldingi (1-sahifa emas bo'lsa)
         if page > 1:
@@ -352,6 +364,7 @@ def page_switch(call):
         # ✅ 2-TUGMA: -3 (Oldingi sahifalardan kelgan bo'lsa)
         if page < previous_page and page > 3:
             btns.append(types.InlineKeyboardButton("..−3", callback_data=f"page_{page-3}"))
+            print("DEBUG: -3 tugma chiqdi")
         
         # ✅ 3-TUGMA: Keyingi (oxirgi sahifa emas bo'lsa)
         if page < pages:
@@ -360,6 +373,7 @@ def page_switch(call):
         # ✅ 4-TUGMA: +3 (Keyingi sahifalarga bormoqchi bo'lsa)
         if page > previous_page and page <= pages - 3:
             btns.append(types.InlineKeyboardButton("+3...", callback_data=f"page_{page+3}"))
+            print("DEBUG: +3 tugma chiqdi")
         
         # ✅ 5-TUGMA: O'chirish
         btns.append(types.InlineKeyboardButton("❌", callback_data="delete_msg_list"))
@@ -368,7 +382,9 @@ def page_switch(call):
             markup.row(*btns)
         
         # ✅ HOZIRGI PAGE'NI STATE'GA SAQLASH
-        state[str(call.from_user.id)] = {"last_page": page}
+        state[user_id]["last_page"] = page
+        
+        print(f"DEBUG: state[{user_id}] = {state[user_id]}")  # Debug
         
         bot.edit_message_text(
             text,
@@ -378,8 +394,13 @@ def page_switch(call):
             reply_markup=markup
         )
     except Exception as e:
-        print(f"Xatolik: {e}")
-        bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi.")
+        print(f"❌ PAGE_SWITCH XATOSI: {e}")
+        import traceback
+        traceback.print_exc()  # Xatoliqning to'liq ma'lumotini chop etish
+        try:
+            bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi.")
+        except:
+            pass
         
         
 # =================== CALLBACK HANDLERS - QIDIRUSH SAHIFALAR ===================
