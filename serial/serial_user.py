@@ -250,6 +250,8 @@ def _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page
     caption = (
         f"📺 *{serial['name']}*\n"
         f"🎬 *{display}*\n\n"
+        f"Qismlar: {len(total)}\t\t\t\t\t||\t\t"
+        f"Sahifa: {page + 1}/{(len(total) + PER_PAGE - 1)//PER_PAGE}\t\t\t\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"Qismni tanlang:"
     )
