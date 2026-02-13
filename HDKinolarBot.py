@@ -308,6 +308,8 @@ def delete_movie_confirm(call):
 
 # =================== PAGE HANDLER - ✅ TO'G'RILANGAN ===================
 
+# =================== PAGE HANDLER - ✅ TUZATILGAN ===================
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("page_"))
 def page_switch(call):
     """Film kodlari sahifalarini o'tish - ✅ OLDINGI PAGE SOLISHTIRISH"""
@@ -355,7 +357,7 @@ def page_switch(call):
         
         previous_page = state[user_id].get("last_page", page)
         
-        print(f"DEBUG: page={page}, previous_page={previous_page}, user_id={user_id}")  # Debug
+        print(f"DEBUG: page={page}, previous_page={previous_page}, user_id={user_id}")
         
         # ✅ 1-TUGMA: Oldingi (1-sahifa emas bo'lsa)
         if page > 1:
@@ -384,21 +386,41 @@ def page_switch(call):
         # ✅ HOZIRGI PAGE'NI STATE'GA SAQLASH
         state[user_id]["last_page"] = page
         
-        print(f"DEBUG: state[{user_id}] = {state[user_id]}")  # Debug
+        print(f"DEBUG: state[{user_id}] = {state[user_id]}")
         
-        bot.edit_message_text(
-            text,
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            parse_mode="Markdown",
-            reply_markup=markup
-        )
-    except Exception as e:
-        print(f"❌ PAGE_SWITCH XATOSI: {e}")
-        import traceback
-        traceback.print_exc()  # Xatoliqning to'liq ma'lumotini chop etish
+        # ✅ TO'G'RILANGAN: edit_message_text o'rniga send_message
+        # (agar message mavjud bo'lmasa xatolik beradi)
         try:
-            bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi.")
+            bot.edit_message_text(
+                text,
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                parse_mode="Markdown",
+                reply_markup=markup
+            )
+        except Exception as edit_error:
+            print(f"⚠️ EDIT XATOSI: {edit_error}")
+            # Agar edit ishlamasa, yangi xabar yuborish
+            try:
+                bot.send_message(
+                    call.message.chat.id,
+                    text,
+                    parse_mode="Markdown",
+                    reply_markup=markup
+                )
+            except Exception as send_error:
+                print(f"❌ SEND XATOSI: {send_error}")
+        
+        # ✅ Callback query'ni "tushunarli" qilish
+        bot.answer_callback_query(call.id, "", show_alert=False)
+        
+    except Exception as e:
+        print(f"❌ PAGE_SWITCH ASOSIY XATOSI: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        try:
+            bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi.", show_alert=True)
         except:
             pass
         
