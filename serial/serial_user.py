@@ -197,11 +197,9 @@ def _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page
     row = []
     for item in page_items:
         ep_num = item.get("episode_number") if isinstance(item, dict) else item
-        button_text = f"🎞 {ep_num:02d}-qism" if isinstance(ep_num, int) else f"🎞 {ep_num}-qism"
         row.append(
             types.InlineKeyboardButton(
                 str(ep_num),
-                button_text,
                 callback_data=f"user_episode_{serial_code}_{season_id}_{ep_num}"
             )
         )
