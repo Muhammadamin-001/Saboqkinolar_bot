@@ -310,12 +310,13 @@ def delete_movie_confirm(call):
 
 # =================== PAGE HANDLER - ✅ TUZATILGAN ===================
 
+# =================== PAGE HANDLER - ✅ SODDA VA XAVFSIZ ===================
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("page_"))
 def page_switch(call):
-    """Film kodlari sahifalarini o'tish - ✅ OLDINGI PAGE SOLISHTIRISH"""
+    """Film kodlari sahifalarini o'tish - ✅ SODDALASHTIRILGAN"""
     try:
         page = int(call.data.split("_")[1])
-        user_id = str(call.from_user.id)
         
         limit = 5
         skip = (page - 1) * limit
@@ -339,88 +340,51 @@ def page_switch(call):
             code = m['code']
             text += f"{c}.   {m['name']}\n"
             text += f"🆔 Kod: `{code}`\n"
-            text += f"[▶️ Yuklab olish](https://t.me/Saboq_kinolar_bot?start={code})\n"
+            text += f"[▶️ Kinoni yuklash](https://t.me/Saboq_kinolar_bot?start={code})\n"
             text += f"*{'─' * 10}*\n"
             c += 1
         
         markup = types.InlineKeyboardMarkup()
         btns = []
         
-        # ✅ OLDINGI PAGE QIYMATINI OLISH
-        # State'da dictionary bo'lishini tekshirish
-        if user_id not in state:
-            state[user_id] = {}
+        # ✅ TUGMALAR LOGIKASI:
         
-        # Agar state user_id uchun list bo'lsa, dict ga o'zgartirish
-        if isinstance(state[user_id], list):
-            state[user_id] = {}
-        
-        previous_page = state[user_id].get("last_page", page)
-        
-        print(f"DEBUG: page={page}, previous_page={previous_page}, user_id={user_id}")
-        
-        # ✅ 1-TUGMA: Oldingi (1-sahifa emas bo'lsa)
+        # 1. Oldingi tugma (1-sahifa emas bo'lsa)
         if page > 1:
             btns.append(types.InlineKeyboardButton("⬅️ Old..", callback_data=f"page_{page-1}"))
         
-        # ✅ 2-TUGMA: -3 (Oldingi sahifalardan kelgan bo'lsa)
-        if page < previous_page and page > 3:
-            btns.append(types.InlineKeyboardButton("..−3", callback_data=f"page_{page-3}"))
-            print("DEBUG: -3 tugma chiqdi")
+        # 2. -3 tugma (5-sahifa va undan keyin)
+        if page > 4:
+            btns.append(types.InlineKeyboardButton("...−3", callback_data=f"page_{page-3}"))
         
-        # ✅ 3-TUGMA: Keyingi (oxirgi sahifa emas bo'lsa)
+        # 3. +3 tugma (oxirdan 3 ta oldinda va uning oldida)
+        if page < pages - 3:
+            btns.append(types.InlineKeyboardButton("+3...", callback_data=f"page_{page+3}"))
+        
+        # 4. Keyingi tugma (oxirgi sahifa emas bo'lsa)
         if page < pages:
             btns.append(types.InlineKeyboardButton("➡️ Key..", callback_data=f"page_{page+1}"))
         
-        # ✅ 4-TUGMA: +3 (Keyingi sahifalarga bormoqchi bo'lsa)
-        if page > previous_page and page <= pages - 3:
-            btns.append(types.InlineKeyboardButton("+3...", callback_data=f"page_{page+3}"))
-            print("DEBUG: +3 tugma chiqdi")
-        
-        # ✅ 5-TUGMA: O'chirish
+        # 5. O'chirish tugmasi (har doim)
         btns.append(types.InlineKeyboardButton("❌", callback_data="delete_msg_list"))
         
+        # Tugmalarni qo'shish
         if btns:
             markup.row(*btns)
         
-        # ✅ HOZIRGI PAGE'NI STATE'GA SAQLASH
-        state[user_id]["last_page"] = page
-        
-        print(f"DEBUG: state[{user_id}] = {state[user_id]}")
-        
-        # ✅ TO'G'RILANGAN: edit_message_text o'rniga send_message
-        # (agar message mavjud bo'lmasa xatolik beradi)
-        try:
-            bot.edit_message_text(
-                text,
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                parse_mode="Markdown",
-                reply_markup=markup
-            )
-        except Exception as edit_error:
-            print(f"⚠️ EDIT XATOSI: {edit_error}")
-            # Agar edit ishlamasa, yangi xabar yuborish
-            try:
-                bot.send_message(
-                    call.message.chat.id,
-                    text,
-                    parse_mode="Markdown",
-                    reply_markup=markup
-                )
-            except Exception as send_error:
-                print(f"❌ SEND XATOSI: {send_error}")
-        
-        # ✅ Callback query'ni "tushunarli" qilish
-        bot.answer_callback_query(call.id, "", show_alert=False)
+        # ✅ XABARNI TAHRIR QILISH
+        bot.edit_message_text(
+            text,
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
         
     except Exception as e:
-        print(f"❌ PAGE_SWITCH ASOSIY XATOSI: {e}")
-        import traceback
-        traceback.print_exc()
-        
+        print(f"❌ Xatolik: {e}")
         try:
-            bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi.", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi.")
         except:
             pass
         
