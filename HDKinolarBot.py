@@ -5,6 +5,7 @@
 # 📦 Standart kutubxonalar
 import os
 import time
+import re
 from flask import Flask, request
 import telebot
 from telebot import types
@@ -306,15 +307,7 @@ def delete_movie_confirm(call):
 
 # =================== PAGE HANDLER - ✅ QOSHILDI ===================
 
-# =================== PAGE HANDLER - ✅ TO'G'RILANGAN ===================
 
-# =================== PAGE HANDLER - ✅ TUZATILGAN ===================
-
-# =================== PAGE HANDLER - ✅ SODDA VA XAVFSIZ ===================
-
-# =================== PAGE HANDLER - ✅ OLDINGI PAGE ASOSIDA ===================
-
-# =================== PAGE HANDLER - ✅ STATE SIZ, XAVFSIZ ===================
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("page_"))
 def page_switch(call):
@@ -322,6 +315,11 @@ def page_switch(call):
     try:
         page = int(call.data.split("_")[1])
         
+        old_page = page
+        if call.message and call.message.text:
+            match = re.search(r"Sahifa:\s*(\d+)/(\d+)", call.message.text)
+            if match:
+                old_page = int(match.group(1))
         limit = 5
         skip = (page - 1) * limit
 
@@ -348,29 +346,34 @@ def page_switch(call):
             text += f"*{'─' * 10}*\n"
             c += 1
         
-        a1= 0
-        a2= 0
+        
         markup = types.InlineKeyboardMarkup()
         btns = []
-        
+        diff = page - old_page
         # ✅ TUGMALAR (STATE SIZ):
         
         # 1. Oldingi (1-sahifa emas bo'lsa)
         if page > 1:
             btns.append(types.InlineKeyboardButton("⬅️ Old..", callback_data=f"page_{page-1}"))
-            a1=1
         # 2. -3 (5-sahifa va undan keyin)
-        if page >= 4 and a1 == 1:
-            btns.append(types.InlineKeyboardButton("...", callback_data=f"page_{page-3}"))
-        
+        if page >= 4 and diff < 0:
+            btns.append(types.InlineKeyboardButton("..-3", callback_data=f"page_{page-3}"))
+        # 3. +3 (oxirdan 3 ta oldinda)
+        if page < pages - 3 and diff > 0:
+            btns.append(types.InlineKeyboardButton("+3..", callback_data=f"page_{page+3}"))
+            
+         # Birinchi ochilish yoki diff aniqlanmagan holat uchun default tugmalar
+        if diff == 0:
+            if page >= 4:
+                btns.append(types.InlineKeyboardButton("..-3", callback_data=f"page_{page-3}"))
+            if page < pages - 3:
+                btns.append(types.InlineKeyboardButton("+3..", callback_data=f"page_{page+3}"))
         # 4. Keyingi (oxirgi emas bo'lsa)
         if page < pages:
             btns.append(types.InlineKeyboardButton("➡️ Key..", callback_data=f"page_{page+1}"))
-            a2=1
+        
             
-        # 3. +3 (oxirdan 3 ta oldinda)
-        if page < pages - 3 and a2 == 1:
-            btns.append(types.InlineKeyboardButton("....", callback_data=f"page_{page+3}"))
+        
         # 5. O'chirish
         btns.append(types.InlineKeyboardButton("❌", callback_data="delete_msg_list"))
         
