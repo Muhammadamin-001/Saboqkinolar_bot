@@ -348,6 +348,8 @@ def page_switch(call):
             text += f"*{'─' * 10}*\n"
             c += 1
         
+        a1= -1
+        
         markup = types.InlineKeyboardMarkup()
         btns = []
         
@@ -356,19 +358,19 @@ def page_switch(call):
         # 1. Oldingi (1-sahifa emas bo'lsa)
         if page > 1:
             btns.append(types.InlineKeyboardButton("⬅️ Old..", callback_data=f"page_{page-1}"))
-        
+            a1=0
         # 2. -3 (5-sahifa va undan keyin)
-        if page >= 4 and "⬅️ Old.." == True:
+        if page >= 4 and a1 == 0:
             btns.append(types.InlineKeyboardButton("...", callback_data=f"page_{page-3}"))
-        
-        # 3. +3 (oxirdan 3 ta oldinda)
-        if page < pages - 3 and "➡️ Key.." == True:
-            btns.append(types.InlineKeyboardButton("....", callback_data=f"page_{page+3}"))
         
         # 4. Keyingi (oxirgi emas bo'lsa)
         if page < pages:
             btns.append(types.InlineKeyboardButton("➡️ Key..", callback_data=f"page_{page+1}"))
-        
+            a1=1
+            
+        # 3. +3 (oxirdan 3 ta oldinda)
+        if page < pages - 3 and a1 == 1:
+            btns.append(types.InlineKeyboardButton("....", callback_data=f"page_{page+3}"))
         # 5. O'chirish
         btns.append(types.InlineKeyboardButton("❌", callback_data="delete_msg_list"))
         
