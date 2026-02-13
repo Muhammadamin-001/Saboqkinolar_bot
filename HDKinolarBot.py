@@ -340,7 +340,7 @@ def page_switch(call):
             code = m['code']
             text += f"{c}.   {m['name']}\n"
             text += f"🆔 Kod: `{code}`\n"
-            text += f"[▶️ Kinoni yuklash](https://t.me/Saboq_kinolar_bot?start={code})\n"
+            text += f"[▶️ Yuklab olish](https://t.me/Saboq_kinolar_bot?start={code})\n"
             text += f"*{'─' * 10}*\n"
             c += 1
         
