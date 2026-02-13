@@ -359,14 +359,14 @@ def page_switch(call):
         if page >= 4 and diff < 0:
             btns.append(types.InlineKeyboardButton("..-3", callback_data=f"page_{page-3}"))
         # 3. +3 (oxirdan 3 ta oldinda)
-        if page < pages - 3 and diff > 0:
+        if page <= pages - 3 and diff > 0:
             btns.append(types.InlineKeyboardButton("+3..", callback_data=f"page_{page+3}"))
             
          # Birinchi ochilish yoki diff aniqlanmagan holat uchun default tugmalar
         if diff == 0:
             if page >= 4:
                 btns.append(types.InlineKeyboardButton("..-3", callback_data=f"page_{page-3}"))
-            if page < pages - 3:
+            if page <= pages - 3:
                 btns.append(types.InlineKeyboardButton("+3..", callback_data=f"page_{page+3}"))
         # 4. Keyingi (oxirgi emas bo'lsa)
         if page < pages:
