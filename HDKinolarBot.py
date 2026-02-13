@@ -312,11 +312,14 @@ def delete_movie_confirm(call):
 
 # =================== PAGE HANDLER - ✅ SODDA VA XAVFSIZ ===================
 
+# =================== PAGE HANDLER - ✅ OLDINGI PAGE ASOSIDA ===================
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("page_"))
 def page_switch(call):
-    """Film kodlari sahifalarini o'tish - ✅ SODDALASHTIRILGAN"""
+    """Film kodlari sahifalarini o'tish - ✅ OLDINGI PAGE ASOSIDA"""
     try:
         page = int(call.data.split("_")[1])
+        user_id = str(call.from_user.id)
         
         limit = 5
         skip = (page - 1) * limit
@@ -340,37 +343,57 @@ def page_switch(call):
             code = m['code']
             text += f"{c}.   {m['name']}\n"
             text += f"🆔 Kod: `{code}`\n"
-            text += f"[▶️ Yuklab olish](https://t.me/Saboq_kinolar_bot?start={code})\n"
+            text += f"[▶️ Kinoni yuklash](https://t.me/Saboq_kinolar_bot?start={code})\n"
             text += f"*{'─' * 10}*\n"
             c += 1
         
         markup = types.InlineKeyboardMarkup()
         btns = []
         
-        # ✅ TUGMALAR LOGIKASI:
+        # ✅ OLDINGI PAGE QIYMATINI OLISH
+        # User state'da last_page saqlangan bo'lsa ishlatamiz
+        previous_page = page  # Default: hozirgi page
+        if user_id in state and isinstance(state[user_id], dict):
+            previous_page = state[user_id].get("last_page", page)
         
-        # 1. Oldingi tugma (1-sahifa emas bo'lsa)
+        print(f"DEBUG: page={page}, previous_page={previous_page}")
+        
+        # ✅ 1. Oldingi tugma (1-sahifa emas bo'lsa)
         if page > 1:
-            btns.append(types.InlineKeyboardButton("⬅️ Old..", callback_data=f"page_{page-1}"))
+            btns.append(types.InlineKeyboardButton("⬅️ Oldingi", callback_data=f"page_{page-1}"))
         
-        # 2. -3 tugma (5-sahifa va undan keyin)
-        if page > 4:
+        # ✅ 2. -3 TUGMASI: Oldingi sahifalardan kelgan bo'lsa (page < previous_page)
+        # VA sahifa 5 dan katta bo'lsa
+        if page < previous_page and page > 4:
             btns.append(types.InlineKeyboardButton("...−3", callback_data=f"page_{page-3}"))
+            print(f"DEBUG: -3 tugma chiqdi (orqaga qaytdi)")
         
-        # 3. +3 tugma (oxirdan 3 ta oldinda va uning oldida)
-        if page < pages - 3:
+        # ✅ 3. +3 TUGMASI: Keyingi sahifalarga bormoqchi bo'lsa (page > previous_page)
+        # VA oxirdan 3 ta oldinda bo'lsa
+        elif page > previous_page and page < pages - 3:
             btns.append(types.InlineKeyboardButton("+3...", callback_data=f"page_{page+3}"))
+            print(f"DEBUG: +3 tugma chiqdi (oldinga qaytdi)")
         
-        # 4. Keyingi tugma (oxirgi sahifa emas bo'lsa)
+        # ✅ 4. Keyingi tugma (oxirgi sahifa emas bo'lsa)
         if page < pages:
-            btns.append(types.InlineKeyboardButton("➡️ Key..", callback_data=f"page_{page+1}"))
+            btns.append(types.InlineKeyboardButton("Keyingi ➡️", callback_data=f"page_{page+1}"))
         
-        # 5. O'chirish tugmasi (har doim)
+        # ✅ 5. O'chirish tugmasi (har doim)
         btns.append(types.InlineKeyboardButton("❌", callback_data="delete_msg_list"))
         
         # Tugmalarni qo'shish
         if btns:
             markup.row(*btns)
+        
+        # ✅ HOZIRGI PAGE'NI STATE'GA SAQLASH (MINIMAL)
+        if user_id not in state:
+            state[user_id] = {}
+        if not isinstance(state[user_id], dict):
+            state[user_id] = {}
+        
+        state[user_id]["last_page"] = page
+        
+        print(f"DEBUG: state[{user_id}]['last_page'] = {page}")
         
         # ✅ XABARNI TAHRIR QILISH
         bot.edit_message_text(
@@ -383,6 +406,8 @@ def page_switch(call):
         
     except Exception as e:
         print(f"❌ Xatolik: {e}")
+        import traceback
+        traceback.print_exc()
         try:
             bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi.")
         except:
