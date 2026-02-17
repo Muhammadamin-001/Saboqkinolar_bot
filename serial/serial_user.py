@@ -73,7 +73,7 @@ def show_serial_for_user(chat_id, serial_code):
         f"🎞 <b>{serial['name']}</b>\n\n"
         f"<blockquote>{serial['description']}</blockquote>\n\n"
         f"🆔 Serial kodi: <code>{serial_code}</code>\n"
-        f"🤖 <a href='https://t.me/Saboq_kinolar_bot'>Saboq_Kinolar_bot</a>\n"
+        f"🔗 <a href='https://t.me/Saboq_kinolar_bot'>Saboq_Kinolar_bot</a>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n\n"
         f"⬇️ Faslni tanlang: ⬇️"
     )
@@ -250,7 +250,7 @@ def _display_episodes_and_send_video(call, chat_id, serial_code, season_id, page
         display = season_name
 
     caption = (
-        f"📺 *{serial['name']}*\n"
+        f"📺 *{serial['name']}* -->\t"
         f"🎬 *{display}*\n\n"
         f"Qismlar: {len(total)}\t\t\t\t\t||\t\t"
         f"Sahifa: {page + 1}/{(len(total) + PER_PAGE - 1)//PER_PAGE}\t\t\t\n"
