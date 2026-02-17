@@ -186,7 +186,7 @@ def send_movie_info(chat_id, kino_kodi):
             f"💽 Formati: {movie['formati']}\n"
             f"🎞 Janri: {movie['genre']}\n"
             f"🆔 Kod: <code>{code}</code>"
-            f"/blockquote>"
+            f"</blockquote>"
             f"🤖 Botimiz: {movie['urlbot']}"
         )
         bot.send_video(
