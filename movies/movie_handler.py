@@ -180,11 +180,13 @@ def send_movie_info(chat_id, kino_kodi):
         markup.add(types.InlineKeyboardButton("❌", callback_data="delete_movie"))
         
         caption_text = (
-            f"🎬 {movie['name']} \n"
-            f"{'─' * 15}\n"
+            f"<b>🎬 {movie['name']}</b> \n"
+            f"{'─' * 20}\n"
+            f"<blockquote>"
             f"💽 Formati: {movie['formati']}\n"
             f"🎞 Janri: {movie['genre']}\n"
-            f"🆔 Kod: {code}\n\n"
+            f"🆔 Kod: <code>{code}</code>"
+            f"/blockquote>"
             f"🤖 Botimiz: {movie['urlbot']}"
         )
         bot.send_video(
@@ -192,6 +194,7 @@ def send_movie_info(chat_id, kino_kodi):
             file_id,
             caption=caption_text,
             reply_markup=markup,
+            parse_mode="HTML",
             protect_content=True,
             supports_streaming=True
         )
