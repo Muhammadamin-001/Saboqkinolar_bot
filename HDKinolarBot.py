@@ -655,7 +655,7 @@ def upload_type_kino(call):
     bot.delete_message(call.message.chat.id, call.message.message_id)
     
     bot.send_message(call.message.chat.id,
-                     "🎬 *Video yuboring (video fayl ko'rinishida)*",
+                     "🎬 *Video yuboring (Faqat telegramda ochiladigan video_1)*",
                      parse_mode="Markdown")
     state[str(call.from_user.id)] = ["waiting_for_video"]
     
@@ -789,7 +789,7 @@ def add_new_serial_start(call):
     try:
         bot.send_message(
             call.message.chat.id,
-            "🆔 *Serial kodini kiriting:*\n\n(Masalan: SER001 yoki Breaking\\_Bad)",
+            "🆔 *Serial kodini kiriting:*\n\n(Masalan: 123 yoki Yusuf\\_Qissasi)",
             parse_mode="Markdown"
         )
     except Exception as e:
@@ -847,12 +847,12 @@ def save_serial_code(msg):
 @bot.message_handler(func=lambda msg: str(msg.from_user.id) in state 
                      and state[str(msg.from_user.id)][0] == "serial_waiting_name")
 def save_serial_name(msg):
-    """Serial nomini saqlash va RASM SO'RASH"""
+    """Serial nomini saqlash va HAQIDA SO'RASH"""
     user_id = str(msg.from_user.id)
     serial_name = msg.text.strip()
     serial_code = state[user_id][1]
     
-    # ✅ RASM SO'RASH
+    # ✅ Ta'rif SO'RASH
     bot.send_message(
         msg.chat.id,
         "ℹ️ *Serial haqida tavsif yozing*\n\nBu Xabar orqali serial haqida ma'lumot berasiz!",
@@ -912,7 +912,7 @@ def save_serial_image(msg):
         f"🆔 Kod: `{serial_code}`\n"
         f"📝 Tavsif: {serial_description[:50]}...\n\n"
         f"Endi bu serialga mavsum va qismlar qo'shishingiz mumkin.\n\n"
-        f"Menyu: Serial → 🎞 Serial yuklash → 📺 Mavjud Seriallar",
+        f"🎬 Film yuklash: → 🎞 Serial → 📺 Mavjud Seriallar",
         parse_mode="Markdown"
     )
     
@@ -1056,7 +1056,7 @@ def save_new_season(msg):
         f"✅ *{season_display}-Mavsum qo'shildi!*\n\n"
         f"📺 Serial: {serial['name']}\n\n"
         f"Endi bu mavsumga qismlar qo'shishingiz mumkin.\n"
-        f"/panel → 🎞 Serial yuklash → 📺 Mavjud Seriallar",
+        f"🎬 Film yuklash: → 🎞 Serial → 📺 Mavjud Seriallar...",
         parse_mode="Markdown"
     )
     

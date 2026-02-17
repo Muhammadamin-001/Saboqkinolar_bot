@@ -27,7 +27,7 @@ def upload_movie(msg):
         InlineKeyboardButton("⛔️ Exit", callback_data="exit_upload_movie")
     )
     bot.send_message(msg.chat.id, 
-                     "🎬 *Video yuboring (video fayl ko'rinishida)*",
+                     "🎬 *Video yuboring (Faqat telegramda ochiladigan video)*",
                      parse_mode="Markdown",
                      reply_markup=markup
                      )
@@ -204,6 +204,7 @@ def delete_movie_warning(call):
     """Kino o'chirish ogohlantirish"""
     markup = types.InlineKeyboardMarkup()
     markup.add(
+        types.InlineKeyboardButton("💾 Saqlash", callback_data="save_movie"),
         types.InlineKeyboardButton("❌ O'chirish", callback_data="delete_movie_confirm")
     )
 
@@ -228,3 +229,13 @@ def delete_movie_confirm(call):
     except Exception as e:
         print(e)
         bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi")
+        
+@bot.callback_query_handler(func=lambda call: call.data == "save_movie")
+def save_movie_confirm(call):
+
+    bot.answer_callback_query(call.id)
+    bot.edit_message_reply_markup(
+        call.message.chat.id,
+        call.message.message_id,
+        reply_markup=None
+    )
