@@ -1140,6 +1140,11 @@ def exit_by_button(call):
         del state[user_id]
 
     bot.answer_callback_query(call.id)
+    bot.edit_message_reply_markup(
+        call.message.chat.id,
+        call.message.message_id,
+        reply_markup=None
+    )
     bot.send_message(
         call.message.chat.id,
         "✅ Jarayon bekor qilindi",
