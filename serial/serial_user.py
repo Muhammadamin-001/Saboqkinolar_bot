@@ -327,7 +327,7 @@ def send_episode_message(chat_id, serial_code, season_id, episode_number, serial
             msg = bot.send_video(
                 chat_id,
                 file_id,
-                caption=f"📺 *{serial['name']}*\n🎬 *{season_display}*\n🎞️ *Qism {episode_number}*",
+                caption=f"📺 *{serial['name']}*\n\n🎬 *{season_display}*,\t *{episode_number}-qism*",
                 parse_mode="Markdown",
                 protect_content=True,
                 supports_streaming=True
