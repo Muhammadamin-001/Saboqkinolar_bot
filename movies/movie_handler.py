@@ -181,7 +181,7 @@ def send_movie_info(chat_id, kino_kodi):
         
         caption_text = (
             f"<b>🎬 {movie['name']}</b> \n"
-            f"{'─' * 20}\n"
+            f"{'─' * 15}\n"
             f"<blockquote>"
             f"💽 Formati: {movie['formati']}\n"
             f"🎞 Janri: {movie['genre']}\n"
