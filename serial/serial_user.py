@@ -70,12 +70,12 @@ def show_serial_for_user(chat_id, serial_code):
         )
 
     caption = (
-        f"🎞 *{serial['name']}*\n\n"
+        f"🎞 <b>{serial['name']}</b>\n\n"
         f"<blockquote>{serial['description']}</blockquote>\n\n"
-        f"🆔 Serial kodi: `{serial_code}`\n"
-        f"🤖 [Saboq_kinolar_bot](https://t.me/Saboq_kinolar_bot)\n"
+        f"🆔 Serial kodi: <code>{serial_code}</code>\n"
+        f"🤖 <a href='https://t.me/Saboq_kinolar_bot'>Saboq_Kinolar_bot</a>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"Faslni tanlang: ⬇️"
+        f"⬇️ Faslni tanlang: ⬇️"
     )
 
     bot.send_photo(
