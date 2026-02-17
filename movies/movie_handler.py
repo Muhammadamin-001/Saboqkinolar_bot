@@ -210,7 +210,7 @@ def delete_movie_warning(call):
 
     bot.answer_callback_query(
         call.id,
-        "⚠️ Rostdan ham kinoni o'chirmoqchimisiz?\n\nYana bir marta bosing ... ❌",
+        "⚠️ Rostdan ham video xabarni o'chirmoqchimisiz?\n\nYana bir marta bosing ... ❌",
         show_alert=True
     )
 
