@@ -2585,7 +2585,7 @@ def movie_list(msg):
     
     markup = types.InlineKeyboardMarkup()
     if total > 5:
-        markup.add(types.InlineKeyboardButton("➡️ keyingi", callback_data="page_2"))
+        markup.add(types.InlineKeyboardButton("➡️ Keyingi", callback_data="page_2"))
     markup.add(types.InlineKeyboardButton("❌", callback_data="delete_msg_list"))
     
     text = "*🎬 Kinolar ro'yxati*\n\n"
