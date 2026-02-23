@@ -195,7 +195,6 @@ def send_movie_info(chat_id, kino_kodi):
             caption=caption_text,
             reply_markup=markup,
             parse_mode="HTML",
-            protect_content=True,
             supports_streaming=True
         )
     else:
